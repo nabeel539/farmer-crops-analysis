@@ -216,7 +216,7 @@ export default function HarvestPage() {
           }}
         />
       ) : (
-        <div className="border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
@@ -300,11 +300,11 @@ export default function HarvestPage() {
           </DialogHeader>
 
           <form onSubmit={handleCreateHarvest} className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Select Farmer</Label>
                 <Select value={farmerId} onValueChange={(v) => { if (v !== null) setFarmerId(v); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -317,7 +317,7 @@ export default function HarvestPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Harvest Date</Label>
                 <Input
                   type="date"
@@ -328,8 +328,8 @@ export default function HarvestPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Harvested Acres</Label>
                 <Input
                   type="number"
@@ -339,7 +339,7 @@ export default function HarvestPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Yield (Maunds)</Label>
                 <Input
                   type="number"
@@ -348,7 +348,7 @@ export default function HarvestPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Moisture (%)</Label>
                 <Input
                   type="number"
@@ -359,11 +359,11 @@ export default function HarvestPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Harvesting Method</Label>
                 <Select value={method} onValueChange={(v) => { if (v !== null) setMethod(v as any); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -374,10 +374,10 @@ export default function HarvestPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Quality Grade</Label>
                 <Select value={grade} onValueChange={(v) => { if (v !== null) setGrade(v as any); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

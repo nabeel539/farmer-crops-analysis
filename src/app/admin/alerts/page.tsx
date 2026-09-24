@@ -67,10 +67,10 @@ export default function AlertsPage() {
 
   // Form State for Advisory
   const [advTitle, setAdvTitle] = useState('');
-  const [advUrduTitle, setAdvUrduTitle] = useState('');
+  const [advHindiTitle, setAdvHindiTitle] = useState('');
   const [advCategory, setAdvCategory] = useState<AdvisoryBulletin['category']>('CROP_PROTECTION');
   const [advDesc, setAdvDesc] = useState('');
-  const [advUrduDesc, setAdvUrduDesc] = useState('');
+  const [advHindiDesc, setAdvHindiDesc] = useState('');
   const [advAction, setAdvAction] = useState('');
 
   const filteredAlerts = alerts.filter(
@@ -110,13 +110,13 @@ export default function AlertsPage() {
     const newAdv: AdvisoryBulletin = {
       id: `ADV-00${advisories.length + 1}`,
       title: advTitle,
-      urduTitle: advUrduTitle,
+      hindiTitle: advHindiTitle,
       category: advCategory,
       description: advDesc,
-      urduDescription: advUrduDesc,
+      hindiDescription: advHindiDesc,
       recommendedAction: advAction,
       publishedDate: new Date().toISOString().split('T')[0],
-      author: 'Dr. Ayesha Siddiqa (Head of Agronomy)',
+      author: 'Dr. Ayesha Sharma (Head of Agronomy)',
       iconName: 'Sparkles'
     };
 
@@ -287,16 +287,20 @@ export default function AlertsPage() {
                     <span className="text-[11px] text-muted-foreground font-mono">{adv.publishedDate}</span>
                   </div>
                   <CardTitle className="text-base font-bold pt-1">{adv.title}</CardTitle>
-                  <p className="text-xs font-medium text-emerald-600 font-serif leading-relaxed" dir="rtl">
-                    {adv.urduTitle}
-                  </p>
+                  {adv.hindiTitle && (
+                    <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                      {adv.hindiTitle}
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-3 text-xs">
-                  <p className="text-muted-foreground">{adv.description}</p>
-                  <p className="text-foreground/80 font-serif leading-relaxed text-[11px]" dir="rtl">
-                    {adv.urduDescription}
-                  </p>
-                  <div className="p-3 bg-muted/60 rounded-xl space-y-1">
+                  <p className="text-muted-foreground leading-relaxed">{adv.description}</p>
+                  {adv.hindiDescription && (
+                    <p className="text-foreground/80 leading-relaxed text-[11px]">
+                      {adv.hindiDescription}
+                    </p>
+                  )}
+                  <div className="p-3 bg-muted/60 rounded-lg space-y-1">
                     <span className="font-bold text-foreground block">Actionable Protocol:</span>
                     <p className="text-primary font-medium">{adv.recommendedAction}</p>
                   </div>
@@ -321,7 +325,7 @@ export default function AlertsPage() {
           </DialogHeader>
 
           <form onSubmit={handleCreateAlert} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold">Alert Headline / Title *</Label>
               <Input
                 required
@@ -331,11 +335,11 @@ export default function AlertsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Alert Type</Label>
                 <Select value={alertType} onValueChange={(v) => setAlertType(v as any)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -347,10 +351,10 @@ export default function AlertsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Severity Level</Label>
                 <Select value={alertSeverity} onValueChange={(v) => setAlertSeverity(v as any)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -362,16 +366,16 @@ export default function AlertsPage() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold">Target Region / Districts</Label>
               <Input
                 value={alertRegion}
                 onChange={(e) => setAlertRegion(e.target.value)}
-                placeholder="e.g. Central Punjab"
+                placeholder="e.g. Central Punjab / Ludhiana"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold">Detailed Description</Label>
               <Textarea
                 required
@@ -382,7 +386,7 @@ export default function AlertsPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold">Recommended Agronomic Action</Label>
               <Input
                 required
@@ -411,13 +415,13 @@ export default function AlertsPage() {
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">Publish Agronomic Bulletin</DialogTitle>
             <DialogDescription className="text-xs">
-              Publish bilingual guidance for mobile farmer passbook.
+              Publish English and Hindi guidance for mobile farmer passbook.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateAdvisory} className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">English Title</Label>
                 <Input
                   required
@@ -427,22 +431,20 @@ export default function AlertsPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Urdu Title (اردو عنوان)</Label>
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-xs font-semibold">Hindi Title (हिंदी शीर्षक)</Label>
                 <Input
-                  required
-                  dir="rtl"
-                  placeholder="گندم کی آبپاشی کا اہم وقت"
-                  value={advUrduTitle}
-                  onChange={(e) => setAdvUrduTitle(e.target.value)}
+                  placeholder="e.g. गेहूं की सिंचाई का सही समय"
+                  value={advHindiTitle}
+                  onChange={(e) => setAdvHindiTitle(e.target.value)}
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold">Advisory Category</Label>
               <Select value={advCategory} onValueChange={(v) => setAdvCategory(v as any)}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -454,7 +456,7 @@ export default function AlertsPage() {
               </Select>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold">English Description</Label>
               <Textarea
                 required
@@ -464,18 +466,17 @@ export default function AlertsPage() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Urdu Guidance (اردو تفصیل)</Label>
+            <div className="space-y-1.5 min-w-0">
+              <Label className="text-xs font-semibold">Hindi Guidance (हिंदी विवरण)</Label>
               <Textarea
-                required
                 rows={2}
-                dir="rtl"
-                value={advUrduDesc}
-                onChange={(e) => setAdvUrduDesc(e.target.value)}
+                placeholder="खेत में नमी बनाए रखें और तेज हवा के समय सिंचाई न करें..."
+                value={advHindiDesc}
+                onChange={(e) => setAdvHindiDesc(e.target.value)}
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <Label className="text-xs font-semibold">Action Protocol</Label>
               <Input
                 required

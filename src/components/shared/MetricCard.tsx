@@ -44,7 +44,7 @@ export function MetricCard({
             <h3 className="text-2xl font-bold tracking-tight">{value}</h3>
           </div>
           <div className={cn(
-            'p-2.5 rounded-xl flex items-center justify-center',
+            'p-2.5 rounded-md flex items-center justify-center',
             variant === 'primary' ? 'bg-primary/20 text-primary-foreground' : 'bg-secondary text-secondary-foreground'
           )}>
             <Icon className="h-5 w-5 stroke-[1.8]" />

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import { Button } from '@/components/ui/button';
 import { RoleSwitcherBar } from '@/components/shared/RoleSwitcherBar';
 import {
@@ -10,9 +10,19 @@ import {
   Wheat,
   Plus,
   ExternalLink,
-  PanelLeft
+  LayoutDashboard,
+  Users,
+  Package,
+  MapPin,
+  Map,
+  Sprout,
+  Calendar,
+  Factory,
+  TrendingUp,
+  FileText,
+  Settings,
+  ShieldAlert
 } from 'lucide-react';
-import { toggleSidebar } from '@/store/slices/uiSlice';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,27 +44,14 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
   const pathname = usePathname();
-  const dispatch = useAppDispatch();
-  const { currentUser, sidebarOpen } = useAppSelector((state) => state.ui);
+  const { currentUser } = useAppSelector((state) => state.ui);
   const alerts = useAppSelector((state) => state.alerts.alerts);
   const unreadAlerts = alerts.filter((a) => !a.resolved);
 
   return (
     <header className="h-16 border-b border-border/80 bg-card/60 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Left side: Mobile Menu / Desktop Toggle + Breadcrumbs Title */}
+      {/* Left side: Mobile Menu + Breadcrumbs Title */}
       <div className="flex items-center gap-3">
-        {/* Desktop Sidebar Toggle Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => dispatch(toggleSidebar())}
-          className="hidden md:flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-foreground bg-card hover:bg-accent border-border/80 shadow-2xs rounded-lg cursor-pointer transition-all"
-          title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-        >
-          <PanelLeft className="h-4 w-4 text-primary" />
-          <span className="text-[11px] hidden xl:inline">{sidebarOpen ? 'Collapse Menu' : 'Expand Menu'}</span>
-        </Button>
-
         {/* Mobile Navigation Sheet */}
         <Sheet>
           <SheetTrigger render={
@@ -64,7 +61,7 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
           } />
           <SheetContent side="left" className="w-80 p-0 flex flex-col bg-sidebar text-sidebar-foreground">
             <div className="h-16 flex items-center gap-3 px-5 border-b border-border/70">
-              <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-sm">
+              <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold shadow-sm">
                 <Wheat className="h-5 w-5" />
               </div>
               <div className="flex flex-col">
@@ -78,8 +75,9 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Overview</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">📊</span> Dashboard
+                  <Link href="/admin" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <LayoutDashboard className="h-4 w-4 shrink-0 text-primary" />
+                    <span>Dashboard</span>
                   </Link>
                 </div>
               </div>
@@ -88,18 +86,24 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Seed & Land Base</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/farmers" className={cn('flex items-center justify-between px-3 py-2 rounded-xl transition-colors', pathname === '/admin/farmers' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="flex items-center gap-2.5"><span className="text-sm">👥</span> Farmers Enrolled</span>
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">12</Badge>
+                  <Link href="/admin/farmers" className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/farmers' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <span className="flex items-center gap-2.5">
+                      <Users className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <span>Farmers Enrolled</span>
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-mono">12</Badge>
                   </Link>
-                  <Link href="/admin/seed-distribution" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/seed-distribution' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">📦</span> Seed Distribution
+                  <Link href="/admin/seed-distribution" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/seed-distribution' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <Package className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span>Seed Distribution</span>
                   </Link>
-                  <Link href="/admin/land-parcels" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/land-parcels' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">📍</span> Land Parcels & GPS
+                  <Link href="/admin/land-parcels" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/land-parcels' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <MapPin className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+                    <span>Land Parcels & GPS</span>
                   </Link>
-                  <Link href="/admin/map" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/map' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">🗺️</span> GIS Field Map
+                  <Link href="/admin/map" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/map' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <Map className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <span>GIS Field Map</span>
                   </Link>
                 </div>
               </div>
@@ -108,12 +112,16 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Crop Operations</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/crop-cycles" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/crop-cycles' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">🌱</span> Wheat Crop Cycles
+                  <Link href="/admin/crop-cycles" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/crop-cycles' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <Sprout className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                    <span>Wheat Crop Cycles</span>
                   </Link>
-                  <Link href="/admin/activities" className={cn('flex items-center justify-between px-3 py-2 rounded-xl transition-colors', pathname === '/admin/activities' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="flex items-center gap-2.5"><span className="text-sm">📅</span> Field Activities</span>
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">12</Badge>
+                  <Link href="/admin/activities" className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/activities' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <span className="flex items-center gap-2.5">
+                      <Calendar className="h-4 w-4 shrink-0 text-cyan-600 dark:text-cyan-400" />
+                      <span>Field Activities</span>
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-mono">12</Badge>
                   </Link>
                 </div>
               </div>
@@ -122,11 +130,13 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Harvest & Processing</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/harvest" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/harvest' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">🌾</span> Harvest Records
+                  <Link href="/admin/harvest" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/harvest' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <Wheat className="h-4 w-4 shrink-0 text-amber-500" />
+                    <span>Harvest Records</span>
                   </Link>
-                  <Link href="/admin/production" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/production' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">🏭</span> Flour Milling & Silos
+                  <Link href="/admin/production" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/production' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <Factory className="h-4 w-4 shrink-0 text-purple-600 dark:text-purple-400" />
+                    <span>Flour Milling & Silos</span>
                   </Link>
                 </div>
               </div>
@@ -135,18 +145,24 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Intelligence</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/alerts" className={cn('flex items-center justify-between px-3 py-2 rounded-xl transition-colors', pathname === '/admin/alerts' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="flex items-center gap-2.5"><span className="text-sm">🔔</span> Agri Alerts</span>
-                    <Badge variant="destructive" className="text-[10px] h-4 px-1.5">4</Badge>
+                  <Link href="/admin/alerts" className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/alerts' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <span className="flex items-center gap-2.5">
+                      <Bell className="h-4 w-4 shrink-0 text-rose-500" />
+                      <span>Agri Alerts</span>
+                    </span>
+                    <Badge variant="destructive" className="text-[10px] h-4 px-1.5 font-mono">4</Badge>
                   </Link>
-                  <Link href="/admin/analytics" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/analytics' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">📈</span> Analytics & Yield
+                  <Link href="/admin/analytics" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/analytics' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <TrendingUp className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-400" />
+                    <span>Analytics & Yield</span>
                   </Link>
-                  <Link href="/admin/reports" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/reports' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">📄</span> Official Reports
+                  <Link href="/admin/reports" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/reports' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <FileText className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                    <span>Official Reports</span>
                   </Link>
-                  <Link href="/admin/settings" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors', pathname === '/admin/settings' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
-                    <span className="text-sm">⚙️</span> Settings & Policy
+                  <Link href="/admin/settings" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/settings' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                    <Settings className="h-4 w-4 shrink-0 text-slate-500" />
+                    <span>Settings & Policy</span>
                   </Link>
                 </div>
               </div>
@@ -154,11 +170,11 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               {/* Portals Switch Section */}
               <div className="pt-2 border-t border-border/60 space-y-2">
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block">Other Portals</span>
-                <Link href="/field-officer" className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold">
+                <Link href="/field-officer" className="flex items-center justify-between px-3 py-2 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold">
                   <span>Field Officer Mobile App</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
-                <Link href="/farmer" className="flex items-center justify-between px-3 py-2 rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
+                <Link href="/farmer" className="flex items-center justify-between px-3 py-2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
                   <span>Farmer Passbook App</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>

@@ -227,9 +227,9 @@ export interface AdvisoryBulletin {
   id: string;
   title: string;
   category: 'CROP_PROTECTION' | 'IRRIGATION' | 'FERTILIZER' | 'MARKET_PRICE' | 'WEATHER';
-  urduTitle: string;
+  hindiTitle?: string;
   description: string;
-  urduDescription: string;
+  hindiDescription?: string;
   recommendedAction: string;
   targetVariety?: SeedVariety;
   publishedDate: string;

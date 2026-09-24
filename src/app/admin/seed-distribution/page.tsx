@@ -242,7 +242,7 @@ export default function SeedDistributionPage() {
               }}
             />
           ) : (
-            <div className="border rounded-2xl bg-card overflow-hidden shadow-xs">
+            <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
@@ -398,11 +398,11 @@ export default function SeedDistributionPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Seed Variety</Label>
                 <Select value={variety} onValueChange={(v) => { if (v !== null) setVariety(v as SeedVariety); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -416,7 +416,7 @@ export default function SeedDistributionPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Quantity (50kg Bags)</Label>
                 <Input
                   type="number"
@@ -429,7 +429,7 @@ export default function SeedDistributionPage() {
             </div>
 
             {/* Live Subsidy Calculator Summary Box */}
-            <div className="p-4 rounded-2xl bg-muted/60 space-y-2 text-xs">
+            <div className="p-4 rounded-lg bg-muted/60 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Standard Retail Price ({quantityBags} bags @ ₹ 2,400):</span>
                 <span className="font-semibold">₹ {(quantityBags * 2400).toLocaleString()}</span>

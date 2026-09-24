@@ -1,14 +1,13 @@
 'use client';
 
 import React from 'react';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import { Button } from '@/components/ui/button';
 import { RoleSwitcherBar } from '@/components/shared/RoleSwitcherBar';
 import {
   Bell,
   Menu,
   Wheat,
-  PanelLeft,
   ExternalLink,
   Sprout,
   CreditCard,
@@ -20,7 +19,6 @@ import {
   ShieldCheck,
   PhoneCall
 } from 'lucide-react';
-import { toggleSidebar } from '@/store/slices/uiSlice';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,27 +48,13 @@ export function FarmerHeader({
   farmerCode,
   village
 }: FarmerHeaderProps) {
-  const dispatch = useAppDispatch();
-  const { sidebarOpen } = useAppSelector((state) => state.ui);
   const alerts = useAppSelector((state) => state.alerts.alerts);
   const unreadAlerts = alerts.filter((a) => !a.resolved);
 
   return (
     <header className="h-16 border-b border-border/80 bg-card/70 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-      {/* Left side: Mobile Menu / Desktop Toggle + Farmer Info */}
+      {/* Left side: Mobile Menu + Farmer Info */}
       <div className="flex items-center gap-3">
-        {/* Desktop Sidebar Toggle Button */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => dispatch(toggleSidebar())}
-          className="hidden md:flex items-center gap-1.5 h-8 px-2.5 text-xs font-semibold text-foreground bg-card hover:bg-accent border-border/80 shadow-2xs rounded-lg cursor-pointer transition-all"
-          title={sidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
-        >
-          <PanelLeft className="h-4 w-4 text-emerald-600" />
-          <span className="text-[11px] hidden xl:inline">{sidebarOpen ? 'Collapse' : 'Expand Menu'}</span>
-        </Button>
-
         {/* Mobile Navigation Drawer Sheet */}
         <Sheet>
           <SheetTrigger render={
@@ -105,7 +89,7 @@ export function FarmerHeader({
                 <button
                   onClick={() => setActiveTab('CROP_STATUS')}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors cursor-pointer text-left',
+                    'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
                     activeTab === 'CROP_STATUS' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
@@ -113,11 +97,10 @@ export function FarmerHeader({
                   <span className="text-[10px] opacity-80 font-mono">Live Stage</span>
                 </button>
 
-
                 <button
                   onClick={() => setActiveTab('OPERATIONS')}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors cursor-pointer text-left',
+                    'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
                     activeTab === 'OPERATIONS' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
@@ -128,7 +111,7 @@ export function FarmerHeader({
                 <button
                   onClick={() => setActiveTab('DOCTOR')}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors cursor-pointer text-left',
+                    'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
                     activeTab === 'DOCTOR' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
@@ -139,7 +122,7 @@ export function FarmerHeader({
                 <button
                   onClick={() => setActiveTab('ADVISORIES')}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors cursor-pointer text-left',
+                    'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
                     activeTab === 'ADVISORIES' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
@@ -150,7 +133,7 @@ export function FarmerHeader({
                 <button
                   onClick={() => setActiveTab('WEATHER_MANDI')}
                   className={cn(
-                    'w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors cursor-pointer text-left',
+                    'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
                     activeTab === 'WEATHER_MANDI' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
@@ -162,11 +145,11 @@ export function FarmerHeader({
               {/* Other Portals Switch */}
               <div className="pt-2 border-t border-border/60 space-y-2">
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block">Switch Portals</span>
-                <Link href="/admin" className="flex items-center justify-between px-3 py-2 rounded-xl bg-primary/10 text-primary font-semibold">
+                <Link href="/admin" className="flex items-center justify-between px-3 py-2 rounded-md bg-primary/10 text-primary font-semibold">
                   <span>Admin Console</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
-                <Link href="/field-officer" className="flex items-center justify-between px-3 py-2 rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
+                <Link href="/field-officer" className="flex items-center justify-between px-3 py-2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
                   <span>Field Officer App</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
@@ -177,8 +160,8 @@ export function FarmerHeader({
 
         {/* Farmer Profile Badge on Header */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm">
-            🌾
+          <div className="w-8 h-8 rounded-md bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-sm">
+            <Wheat className="h-4 w-4" />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">

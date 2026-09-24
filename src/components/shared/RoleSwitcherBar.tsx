@@ -61,7 +61,7 @@ export function RoleSwitcherBar() {
         <Button 
           variant="outline" 
           size="sm" 
-          className="h-8 gap-2 bg-background/90 border-primary/30 hover:border-primary text-xs font-semibold px-2.5 rounded-full shadow-xs"
+          className="h-8 gap-2 bg-background/90 border-primary/30 hover:border-primary text-xs font-semibold px-2.5 rounded-md shadow-xs"
         >
           {getRoleIcon(activeRole)}
           <span className="hidden sm:inline">{currentUser.name}</span>

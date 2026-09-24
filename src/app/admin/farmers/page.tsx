@@ -295,7 +295,7 @@ export default function FarmersPage() {
           }}
         />
       ) : (
-        <div className="border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent bg-muted/40 text-xs">
@@ -483,7 +483,7 @@ export default function FarmersPage() {
                     if (v !== null) setFormData({ ...formData, district: v });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -523,7 +523,7 @@ export default function FarmersPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-muted/40 rounded-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-muted/40 rounded-lg">
               <div className="space-y-1.5">
                 <Label className="text-xs">Bank Name</Label>
                 <Input
@@ -550,7 +550,7 @@ export default function FarmersPage() {
                   if (v !== null) setFormData({ ...formData, status: v as any });
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -598,18 +598,18 @@ export default function FarmersPage() {
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">Wheat Acreage</p>
                   <p className="text-lg font-bold text-primary">{selectedFarmer.wheatAcreage} Ac</p>
                 </div>
-                <div className="p-3 bg-muted/60 rounded-xl">
+                <div className="p-3 bg-muted/60 rounded-md">
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">Total Land</p>
                   <p className="text-lg font-bold text-foreground">{selectedFarmer.totalLandAcres} Ac</p>
                 </div>
-                <div className="p-3 bg-muted/60 rounded-xl">
+                <div className="p-3 bg-muted/60 rounded-md">
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">Compliance</p>
                   <p className="text-lg font-bold text-amber-600">{selectedFarmer.ratingScore?.toFixed(1) || '4.8'} / 5</p>
                 </div>
               </div>
 
               {/* Contact & Banking Info */}
-              <div className="space-y-3 p-4 border rounded-2xl bg-card">
+              <div className="space-y-3 p-4 border rounded-lg bg-card">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
                   Identification & Banking

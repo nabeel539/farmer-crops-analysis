@@ -289,7 +289,7 @@ export default function LandParcelsPage() {
           }}
         />
       ) : (
-        <div className="border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
@@ -465,8 +465,8 @@ export default function LandParcelsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Khasra / Title Deed Number *</Label>
                 <Input
                   required
@@ -476,7 +476,7 @@ export default function LandParcelsPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Total Acreage (Acres) *</Label>
                 <Input
                   type="number"
@@ -488,8 +488,8 @@ export default function LandParcelsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Soil Type</Label>
                 <Select
                   value={formData.soilType || 'CLAY_LOAM'}
@@ -497,7 +497,7 @@ export default function LandParcelsPage() {
                     if (v !== null) setFormData({ ...formData, soilType: v as any });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -510,7 +510,7 @@ export default function LandParcelsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Irrigation Source</Label>
                 <Select
                   value={formData.irrigationSource || 'CANAL_PLUS_TUBEWELL'}
@@ -518,7 +518,7 @@ export default function LandParcelsPage() {
                     if (v !== null) setFormData({ ...formData, irrigationSource: v as any });
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -532,8 +532,8 @@ export default function LandParcelsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/40 rounded-xl">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 bg-muted/40 rounded-lg">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Soil pH Level</Label>
                 <Input
                   type="number"
@@ -543,7 +543,7 @@ export default function LandParcelsPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Organic Matter (%)</Label>
                 <Input
                   type="number"
@@ -578,7 +578,7 @@ export default function LandParcelsPage() {
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="p-4 rounded-2xl bg-muted/50 space-y-2 text-xs">
+              <div className="p-4 rounded-lg bg-muted/50 space-y-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Owner:</span>
                   <span className="font-bold">{selectedParcel.farmerName}</span>

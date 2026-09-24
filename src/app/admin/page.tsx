@@ -385,9 +385,9 @@ export default function AdminDashboardPage() {
 
       {/* Critical Alert Banner if Active Alerts */}
       {activeAlerts.length > 0 && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
+            <div className="p-2 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0">
               <ShieldAlert className="h-5 w-5" />
             </div>
             <div>
@@ -444,7 +444,7 @@ export default function AdminDashboardPage() {
 
       {/* Live GIS Satellite Agricultural Map Section with Farmer Selector */}
       <div className="space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 rounded-2xl bg-card border shadow-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 rounded-lg bg-card border shadow-xs">
           <div className="space-y-0.5">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
               <MapPin className="h-4 w-4 text-emerald-500" />

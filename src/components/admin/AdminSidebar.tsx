@@ -93,7 +93,7 @@ export function AdminSidebar() {
           {sidebarOpen ? (
             <>
               <Link href="/admin" className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
-                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0 shadow-sm ring-1 ring-primary/20">
+                <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0 shadow-sm ring-1 ring-primary/20">
                   <Wheat className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -109,7 +109,7 @@ export function AdminSidebar() {
                 variant="ghost"
                 size="icon"
                 onClick={() => dispatch(toggleSidebar())}
-                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg shrink-0 cursor-pointer"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md shrink-0 cursor-pointer"
                 title="Collapse Sidebar"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -120,7 +120,7 @@ export function AdminSidebar() {
               <TooltipTrigger render={
                 <button
                   onClick={() => dispatch(toggleSidebar())}
-                  className="group relative w-10 h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center font-bold transition-all shadow-sm cursor-pointer"
+                  className="group relative w-10 h-10 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center font-bold transition-all shadow-sm cursor-pointer"
                   title="Click to Expand Sidebar"
                 >
                   <Wheat className="h-5 w-5 group-hover:scale-90 transition-transform" />
@@ -159,7 +159,7 @@ export function AdminSidebar() {
                           <Link
                             href={item.href}
                             className={cn(
-                              'relative flex items-center justify-center h-10 w-10 mx-auto rounded-xl transition-all duration-150',
+                              'relative flex items-center justify-center h-10 w-10 mx-auto rounded-md transition-all duration-150',
                               isActive
                                 ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                                 : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -184,7 +184,7 @@ export function AdminSidebar() {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        'flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-medium transition-all duration-150 group',
+                        'flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 group',
                         isActive
                           ? 'bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-2xs border border-border/50'
                           : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
@@ -197,7 +197,7 @@ export function AdminSidebar() {
                       {item.badge && (
                         <Badge
                           variant={isActive ? 'default' : 'secondary'}
-                          className="text-[10px] px-1.5 py-0 h-4 font-mono font-semibold rounded-full shrink-0"
+                          className="text-[10px] px-1.5 py-0 h-4 font-mono font-semibold rounded-md shrink-0"
                         >
                           {item.badge}
                         </Badge>
@@ -213,9 +213,9 @@ export function AdminSidebar() {
         {/* Footer Profile / Status */}
         <div className="p-2 border-t border-border/60 shrink-0">
           {sidebarOpen ? (
-            <div className="flex items-center justify-between p-2 rounded-xl bg-card border border-border/60">
+            <div className="flex items-center justify-between p-2 rounded-md bg-card border border-border/60">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                <div className="w-7 h-7 rounded-md bg-emerald-500/15 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -227,7 +227,7 @@ export function AdminSidebar() {
           ) : (
             <Tooltip>
               <TooltipTrigger render={
-                <div className="w-10 h-10 mx-auto rounded-xl bg-card border border-border/60 flex items-center justify-center text-emerald-600">
+                <div className="w-10 h-10 mx-auto rounded-md bg-card border border-border/60 flex items-center justify-center text-emerald-600">
                   <ShieldCheck className="h-4.5 w-4.5" />
                 </div>
               } />

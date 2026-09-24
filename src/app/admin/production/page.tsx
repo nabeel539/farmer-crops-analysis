@@ -232,7 +232,7 @@ export default function ProductionPage() {
           }}
         />
       ) : (
-        <div className="border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
@@ -318,7 +318,7 @@ export default function ProductionPage() {
             </div>
 
             {/* Live Yield Calculation Preview */}
-            <div className="p-4 rounded-2xl bg-muted/60 space-y-2 text-xs">
+            <div className="p-4 rounded-lg bg-muted/60 space-y-2 text-xs">
               <div className="flex justify-between font-bold text-foreground border-b pb-1">
                 <span>Calculated Extraction ({extractionRate}%):</span>
                 <span>{flourOutputKg.toLocaleString()} kg Flour</span>
@@ -337,11 +337,11 @@ export default function ProductionPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Destination Silo</Label>
                 <Select value={siloId} onValueChange={(v) => { if (v !== null) setSiloId(v); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -352,7 +352,7 @@ export default function ProductionPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Milling Supervisor</Label>
                 <Input
                   value={supervisor}

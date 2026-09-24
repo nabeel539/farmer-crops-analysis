@@ -152,14 +152,14 @@ export default function HomePage() {
                 <Badge variant="outline" className="text-[10px] font-mono">Mobile-First</Badge>
               </div>
               <CardDescription className="text-xs">
-                Simplified bilingual (English + Urdu) interface for growers: digital seed passbook, weather forecast, and direct spray advisories.
+                Simplified bilingual (English + Hindi) interface for growers: digital seed passbook, weather forecast, and direct spray advisories.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <ul className="text-xs text-muted-foreground space-y-2">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <span>Bilingual Urdu Subtitles & Audio Advice</span>
+                  <span>Bilingual Hindi / English Voice & Text Advice</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />

@@ -238,7 +238,7 @@ export default function ActivitiesPage() {
           }}
         />
       ) : (
-        <div className="border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
@@ -357,7 +357,7 @@ export default function ActivitiesPage() {
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Select Farmer & Field</Label>
               <Select value={farmerId} onValueChange={(v) => { if (v !== null) setFarmerId(v); }}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -370,11 +370,11 @@ export default function ActivitiesPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Operation Type</Label>
                 <Select value={actType} onValueChange={(v) => { if (v !== null) setActType(v as ActivityType); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -390,7 +390,7 @@ export default function ActivitiesPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Scheduled Target Date</Label>
                 <Input
                   type="date"
@@ -401,8 +401,8 @@ export default function ActivitiesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Dosage / Chemical / Volume</Label>
                 <Input
                   placeholder="e.g. 1 Bag Urea per acre"
@@ -412,7 +412,7 @@ export default function ActivitiesPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Estimated Cost (₹)</Label>
                 <Input
                   type="number"

@@ -90,7 +90,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
           {sidebarOpen ? (
             <>
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0 shadow-sm ring-1 ring-emerald-500/30">
+                <div className="w-9 h-9 rounded-md bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0 shadow-sm ring-1 ring-emerald-500/30">
                   <Wheat className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -106,7 +106,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => dispatch(toggleSidebar())}
-                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg shrink-0 cursor-pointer"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md shrink-0 cursor-pointer"
                 title="Collapse Sidebar"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -117,7 +117,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
               <TooltipTrigger render={
                 <button
                   onClick={() => dispatch(toggleSidebar())}
-                  className="group relative w-10 h-10 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center font-bold transition-all shadow-sm cursor-pointer"
+                  className="group relative w-10 h-10 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center font-bold transition-all shadow-sm cursor-pointer"
                   title="Click to Expand Sidebar"
                 >
                   <Wheat className="h-5 w-5 group-hover:scale-90 transition-transform" />
@@ -156,7 +156,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
                           <button
                             onClick={() => setActiveTab(item.id)}
                             className={cn(
-                              'relative flex items-center justify-center h-10 w-10 mx-auto rounded-xl transition-all duration-150 cursor-pointer',
+                              'relative flex items-center justify-center h-10 w-10 mx-auto rounded-md transition-all duration-150 cursor-pointer',
                               isActive
                                 ? 'bg-emerald-600 text-white font-bold shadow-xs'
                                 : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
@@ -181,7 +181,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
                       className={cn(
-                        'w-full flex items-center justify-between px-2.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 group cursor-pointer text-left',
+                        'w-full flex items-center justify-between px-2.5 py-2.5 rounded-md text-xs font-medium transition-all duration-150 group cursor-pointer text-left',
                         isActive
                           ? 'bg-emerald-600/10 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-600/30 shadow-2xs'
                           : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
@@ -200,7 +200,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
                         <Badge
                           variant={isActive ? 'default' : 'secondary'}
                           className={cn(
-                            'text-[10px] px-1.5 py-0 h-4 font-mono font-semibold rounded-full shrink-0',
+                            'text-[10px] px-1.5 py-0 h-4 font-mono font-semibold rounded-md shrink-0',
                             isActive ? 'bg-emerald-600 text-white' : ''
                           )}
                         >
@@ -218,9 +218,9 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
         {/* Footer Farmer ID & Helpline */}
         <div className="p-2.5 border-t border-border/60 shrink-0 space-y-2">
           {sidebarOpen ? (
-            <div className="p-2.5 rounded-xl bg-card border border-border/60 space-y-1.5">
+            <div className="p-2.5 rounded-md bg-card border border-border/60 space-y-1.5">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+                <div className="w-7 h-7 rounded-md bg-emerald-500/15 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
                   <ShieldCheck className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -236,7 +236,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
           ) : (
             <Tooltip>
               <TooltipTrigger render={
-                <div className="w-10 h-10 mx-auto rounded-xl bg-card border border-border/60 flex items-center justify-center text-emerald-600">
+                <div className="w-10 h-10 mx-auto rounded-md bg-card border border-border/60 flex items-center justify-center text-emerald-600">
                   <ShieldCheck className="h-4.5 w-4.5" />
                 </div>
               } />

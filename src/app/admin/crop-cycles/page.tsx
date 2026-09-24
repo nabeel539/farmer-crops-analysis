@@ -248,7 +248,7 @@ export default function CropCyclesPage() {
           }}
         />
       ) : (
-        <div className="border rounded-2xl bg-card overflow-hidden shadow-xs">
+        <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
@@ -423,11 +423,11 @@ export default function CropCyclesPage() {
           </DialogHeader>
 
           <form onSubmit={handleCreateCycle} className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Select Enrolled Farmer</Label>
                 <Select value={farmerId} onValueChange={(v) => { if (v !== null) setFarmerId(v); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -440,10 +440,10 @@ export default function CropCyclesPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Select Land Parcel</Label>
                 <Select value={parcelId} onValueChange={(v) => { if (v !== null) setParcelId(v); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -457,11 +457,11 @@ export default function CropCyclesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Seed Variety</Label>
                 <Select value={variety} onValueChange={(v) => { if (v !== null) setVariety(v as SeedVariety); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -475,10 +475,10 @@ export default function CropCyclesPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs font-semibold">Sowing Method</Label>
                 <Select value={sowingMethod} onValueChange={(v) => { if (v !== null) setSowingMethod(v as any); }}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -532,7 +532,7 @@ export default function CropCyclesPage() {
               </SheetHeader>
 
               {/* Full Stage Progression Visual */}
-              <div className="p-4 border rounded-2xl bg-card space-y-2">
+              <div className="p-4 border rounded-lg bg-card space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Wheat Phenology Progress Timeline
                 </h4>
@@ -541,22 +541,22 @@ export default function CropCyclesPage() {
 
               {/* Satellite Metrics */}
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 bg-muted/60 rounded-xl">
+                <div className="p-3 bg-muted/60 rounded-md">
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">NDVI Index</p>
                   <p className="text-lg font-bold text-emerald-600">{selectedCycle.ndviScore}</p>
                 </div>
-                <div className="p-3 bg-muted/60 rounded-xl">
+                <div className="p-3 bg-muted/60 rounded-md">
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">Moisture</p>
                   <p className="text-lg font-bold text-blue-600">{selectedCycle.soilMoisturePct}%</p>
                 </div>
-                <div className="p-3 bg-muted/60 rounded-xl">
+                <div className="p-3 bg-muted/60 rounded-md">
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">Forecast Yield</p>
                   <p className="text-lg font-bold text-foreground">{selectedCycle.expectedYieldMaundsPerAcre} Mnds</p>
                 </div>
               </div>
 
               {/* Agronomic Parameters */}
-              <div className="p-4 border rounded-2xl bg-card space-y-2 text-xs">
+              <div className="p-4 border rounded-lg bg-card space-y-2 text-xs">
                 <div className="flex justify-between py-1 border-b">
                   <span className="text-muted-foreground">Sowing Method:</span>
                   <span className="font-semibold">{selectedCycle.sowingMethod.replace(/_/g, ' ')}</span>
