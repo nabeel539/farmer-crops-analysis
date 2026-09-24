@@ -51,15 +51,22 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Farmer & Land',
     items: [
-      { title: 'Farmers Enrolled', href: '/admin/farmers', icon: Users, badge: '12' },
+      { title: 'Farmers Enrolled', href: '/admin/farmers', icon: Users },
       { title: 'Land Parcels & GPS', href: '/admin/land-parcels', icon: MapPin }
+    ]
+  },
+  {
+    title: 'Supplies & Vendors',
+    items: [
+      { title: 'Vendors', href: '/admin/vendors', icon: Factory },
+      { title: 'Seed Inventory & Stock', href: '/admin/seed-distribution', icon: Package }
     ]
   },
   {
     title: 'Crop Operations',
     items: [
       { title: 'Wheat Crop Cycles', href: '/admin/crop-cycles', icon: Sprout },
-      { title: 'Field Activities', href: '/admin/activities', icon: CalendarCheck, badge: '12' },
+      { title: 'Field Activities', href: '/admin/activities', icon: CalendarCheck },
       { title: 'Harvest Records', href: '/admin/harvest', icon: Wheat }
     ]
   },
@@ -71,6 +78,7 @@ const NAV_SECTIONS: NavSection[] = [
     ]
   }
 ];
+
 
 export function AdminSidebar() {
   const pathname = usePathname();
