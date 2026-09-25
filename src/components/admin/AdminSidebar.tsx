@@ -51,30 +51,30 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Farmer & Land',
     items: [
-      { title: 'Farmers Enrolled', href: '/admin/farmers', icon: Users },
-      { title: 'Land Parcels & GPS', href: '/admin/land-parcels', icon: MapPin }
+      { title: 'Farmers', href: '/admin/farmers', icon: Users },
+      { title: 'Land Parcels', href: '/admin/land-parcels', icon: MapPin }
     ]
   },
   {
-    title: 'Supplies & Vendors',
+    title: 'Supplies & Stock',
     items: [
       { title: 'Vendors', href: '/admin/vendors', icon: Factory },
-      { title: 'Seed Inventory & Stock', href: '/admin/seed-distribution', icon: Package }
+      { title: 'Seed Inventory', href: '/admin/seed-distribution', icon: Package }
     ]
   },
   {
-    title: 'Crop Operations',
+    title: 'Operations',
     items: [
-      { title: 'Wheat Crop Cycles', href: '/admin/crop-cycles', icon: Sprout },
-      { title: 'Field Activities', href: '/admin/activities', icon: CalendarCheck },
-      { title: 'Harvest Records', href: '/admin/harvest', icon: Wheat }
+      { title: 'Crop Cycles', href: '/admin/crop-cycles', icon: Sprout },
+      { title: 'Activities', href: '/admin/activities', icon: CalendarCheck },
+      { title: 'Harvest', href: '/admin/harvest', icon: Wheat }
     ]
   },
   {
-    title: 'Reports & Settings',
+    title: 'Management',
     items: [
-      { title: 'Reports & Analytics', href: '/admin/reports', icon: FileText },
-      { title: 'Settings & Audit', href: '/admin/settings', icon: Settings }
+      { title: 'Reports', href: '/admin/reports', icon: FileText },
+      { title: 'Settings', href: '/admin/settings', icon: Settings }
     ]
   }
 ];
@@ -90,17 +90,17 @@ export function AdminSidebar() {
       <aside
         className={cn(
           'hidden md:flex flex-col border-r border-border/70 bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out sticky top-0 h-screen shrink-0 z-30 select-none shadow-xs',
-          sidebarOpen ? 'w-64' : 'w-[70px]'
+          sidebarOpen ? 'w-52' : 'w-16'
         )}
       >
         {/* Brand Header */}
         <div className={cn(
-          'h-16 flex items-center border-b border-border/60 shrink-0 px-3 transition-all',
+          'h-14 flex items-center border-b border-border/60 shrink-0 px-2.5 transition-all',
           sidebarOpen ? 'justify-between' : 'justify-center'
         )}>
           {sidebarOpen ? (
             <>
-              <Link href="/admin" className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
+              <Link href="/admin" prefetch={false} className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
                 <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0 shadow-sm ring-1 ring-primary/20">
                   <Wheat className="h-5 w-5" />
                 </div>
@@ -149,11 +149,11 @@ export function AdminSidebar() {
           {NAV_SECTIONS.map((section, idx) => (
             <div key={idx} className="space-y-1">
               {sidebarOpen ? (
-                <h4 className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider px-2.5 py-1 select-none">
+                <h4 className="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-wider px-2 py-0.5 select-none">
                   {section.title}
                 </h4>
               ) : (
-                <div className="w-6 h-px bg-border/60 mx-auto my-1.5" />
+                <div className="w-6 h-px bg-border/60 mx-auto my-1" />
               )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
@@ -166,14 +166,15 @@ export function AdminSidebar() {
                         <TooltipTrigger render={
                           <Link
                             href={item.href}
+                            prefetch={false}
                             className={cn(
-                              'relative flex items-center justify-center h-10 w-10 mx-auto rounded-md transition-all duration-150',
+                              'relative flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-all duration-150',
                               isActive
                                 ? 'bg-primary text-primary-foreground font-bold shadow-xs'
                                 : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                             )}
                           >
-                            <Icon className="h-4.5 w-4.5" />
+                            <Icon className="h-4 w-4" />
                             {item.badge && (
                               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
                             )}
@@ -191,15 +192,16 @@ export function AdminSidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={false}
                       className={cn(
-                        'flex items-center justify-between px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 group',
+                        'flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 group',
                         isActive
                           ? 'bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-2xs border border-border/50'
                           : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
                       )}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Icon className={cn('h-4 w-4 shrink-0 transition-colors', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Icon className={cn('h-3.5 w-3.5 shrink-0 transition-colors', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
                         <span className="truncate">{item.title}</span>
                       </div>
                       {item.badge && (

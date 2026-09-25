@@ -20,7 +20,7 @@ import {
   Factory,
   Users
 } from 'lucide-react';
-import { RoleSwitcherBar } from '@/components/shared/RoleSwitcherBar';
+import { UserNav } from '@/components/shared/UserNav';
 
 export default function HomePage() {
   return (
@@ -38,13 +38,13 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <RoleSwitcherBar />
-          <Link href="/admin">
-            <Button size="sm" className="gap-1.5 font-medium shadow-xs">
-              <span>Open Portal</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+          <Link href="/login">
+            <Button size="sm" variant="outline" className="gap-1.5 font-medium shadow-xs border-primary/40 hover:border-primary">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              <span>Login / Sign In</span>
             </Button>
           </Link>
+          <UserNav />
         </div>
       </header>
 

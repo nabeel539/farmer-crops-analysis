@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import BadRequestException, NotFoundException
 from app.dependencies.auth import require_admin
 from app.models.seed import SeedBatch, SeedSupply
 from app.models.user import User
@@ -30,32 +30,41 @@ def create_seed_supply(
     if not vendor:
         raise NotFoundException("Vendor not found")
 
-    # Create the supply record
-    supply = SeedSupply(
-        vendor_id=data.vendor_id,
-        crop=data.crop,
-        variety=data.variety,
-        supply_date=data.supply_date,
-        purchase_reference=data.purchase_reference,
-        remarks=data.remarks,
-    )
-    db.add(supply)
-    db.flush()  # Get supply.id for the batch
+    # Check for existing batch number to prevent database integrity error
+    existing_batch = db.query(SeedBatch).filter(SeedBatch.batch_number == data.batch_number).first()
+    if existing_batch:
+        raise BadRequestException(f"Seed batch '{data.batch_number}' already exists in inventory.")
 
-    # Auto-create a seed batch with inventory
-    batch = SeedBatch(
-        supply_id=supply.id,
-        batch_number=data.batch_number,
-        quantity=data.quantity,
-        unit=data.unit,
-        received_quantity=data.quantity,
-        allocated_quantity=0.0,
-        available_quantity=data.quantity,
-    )
-    db.add(batch)
-    db.commit()
-    db.refresh(supply)
-    return supply
+    try:
+        # Create the supply record
+        supply = SeedSupply(
+            vendor_id=data.vendor_id,
+            crop=data.crop,
+            variety=data.variety,
+            supply_date=data.supply_date,
+            purchase_reference=data.purchase_reference,
+            remarks=data.remarks,
+        )
+        db.add(supply)
+        db.flush()  # Get supply.id for the batch
+
+        # Auto-create a seed batch with inventory
+        batch = SeedBatch(
+            supply_id=supply.id,
+            batch_number=data.batch_number,
+            quantity=data.quantity,
+            unit=data.unit,
+            received_quantity=data.quantity,
+            allocated_quantity=0.0,
+            available_quantity=data.quantity,
+        )
+        db.add(batch)
+        db.commit()
+        db.refresh(supply)
+        return supply
+    except Exception as e:
+        db.rollback()
+        raise BadRequestException(f"Failed to record seed supply: {str(e)}")
 
 
 @router.get("/supplies", response_model=list[SeedSupplyResponse])

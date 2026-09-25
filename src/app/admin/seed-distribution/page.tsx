@@ -8,21 +8,20 @@ import {
   useGetSeedBatchesQuery,
   useGetSeedSuppliesQuery,
   useCreateSeedSupplyMutation,
-  SeedBatch,
-  SeedSupply,
 } from '@/store/api/seedApi';
 import {
   useGetAllocationsQuery,
   useCreateAllocationMutation,
-  SeedAllocation,
 } from '@/store/api/allocationApi';
-import { useGetVendorsQuery } from '@/store/api/vendorApi';
 import { useGetFarmersQuery } from '@/store/api/farmerApi';
 import { useGetFieldsQuery } from '@/store/api/fieldApi';
+import { useGetVendorsQuery } from '@/store/api/vendorApi';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SearchFilterBar } from '@/components/shared/SearchFilterBar';
-import { EmptyState } from '@/components/shared/EmptyState';
 import { MetricCard } from '@/components/shared/MetricCard';
+import { EmptyState } from '@/components/shared/EmptyState';
+import DataTablePagination, { ViewMode } from '@/components/shared/DataTablePagination';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import {
   Table,
   TableBody,
@@ -31,17 +30,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -51,76 +45,107 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Package,
-  CheckCircle2,
+  Sprout,
   Plus,
-  Receipt,
+  Package,
   Layers,
-  Sparkles,
-  Building2,
+  ArrowDownToLine,
   RefreshCw,
+  Printer,
+  FileSpreadsheet,
   AlertCircle,
+  Truck,
+  CheckCircle2,
+  Calendar,
+  Warehouse,
+  ShoppingBag,
   Clock,
-  ArrowRight,
+  ShieldCheck,
+  Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  MOCK_FARMERS,
+  MOCK_LAND_PARCELS,
+} from '@/data/mockData';
 
-// Schema for Allocating Seed to Farmer Field
 const allocationSchema = z.object({
-  seed_batch_id: z.string().min(1, 'Please select a seed batch'),
-  farmer_id: z.string().min(1, 'Please select a farmer'),
-  field_id: z.string().min(1, 'Please select a field plot'),
-  quantity: z.number().positive('Quantity must be greater than 0'),
-  remarks: z.string().optional().or(z.literal('')),
+  seed_batch_id: z.string().min(1, 'Please select a seed batch from warehouse inventory'),
+  farmer_id: z.string().min(1, 'Please select a registered farmer'),
+  field_id: z.string().min(1, 'Please select a field plot belonging to the farmer'),
+  quantity: z.number().positive('Allocation quantity must be greater than 0'),
+  remarks: z.string().optional(),
 });
 
 type AllocationFormValues = z.infer<typeof allocationSchema>;
 
-// Schema for Receiving New Seed Supply Batch from Vendor
 const supplySchema = z.object({
-  vendor_id: z.string().min(1, 'Please select an authorized vendor'),
+  vendor_id: z.string().min(1, 'Please select an authorized seed vendor'),
   crop: z.string().min(1, 'Crop type is required'),
-  variety: z.string().min(1, 'Variety is required'),
-  batch_number: z.string().min(2, 'Batch number is required'),
+  variety: z.string().min(1, 'Seed variety is required'),
+  batch_number: z.string().min(2, 'Batch / Lot number must be at least 2 characters'),
   quantity: z.number().positive('Quantity must be greater than 0'),
-  unit: z.string(),
-  supply_date: z.string().min(1, 'Supply date is required'),
-  purchase_reference: z.string().optional().or(z.literal('')),
-  remarks: z.string().optional().or(z.literal('')),
+  unit: z.string().min(1, 'Unit is required'),
+  supply_date: z.string().min(1, 'Supply delivery date is required'),
+  purchase_reference: z.string().optional(),
+  remarks: z.string().optional(),
 });
 
 type SupplyFormValues = z.infer<typeof supplySchema>;
 
 export default function SeedDistributionPage() {
-  const [activeTab, setActiveTab] = useState<'ALLOCATIONS' | 'INVENTORY' | 'SUPPLIES'>('ALLOCATIONS');
+  const [activeTab, setActiveTab] = useState<'allocations' | 'inventory' | 'supplies'>('allocations');
   const [searchQuery, setSearchQuery] = useState('');
+  const [varietyFilter, setVarietyFilter] = useState('ALL');
+
+  // Pagination & View Mode State
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [allocPage, setAllocPage] = useState(1);
+  const [allocPageSize, setAllocPageSize] = useState(10);
+  const [supplyPage, setSupplyPage] = useState(1);
+  const [supplyPageSize, setSupplyPageSize] = useState(10);
+
+  // Modals
   const [addAllocationModalOpen, setAddAllocationModalOpen] = useState(false);
   const [addSupplyModalOpen, setAddSupplyModalOpen] = useState(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
-  const [selectedAllocation, setSelectedAllocation] = useState<SeedAllocation | null>(null);
+  const [selectedAllocation, setSelectedAllocation] = useState<any>(null);
 
-  // RTK Query API Hooks
-  const { data: allocations = [], isLoading: isLoadingAlloc, refetch: refetchAlloc } = useGetAllocationsQuery();
-  const { data: batches = [], isLoading: isLoadingBatches, refetch: refetchBatches } = useGetSeedBatchesQuery();
-  const { data: supplies = [], isLoading: isLoadingSupplies, refetch: refetchSupplies } = useGetSeedSuppliesQuery();
-  const { data: vendors = [] } = useGetVendorsQuery();
-  const { data: farmers = [] } = useGetFarmersQuery();
-  const { data: fields = [] } = useGetFieldsQuery();
+  // RTK Queries
+  const { data: apiBatches = [], isLoading: isBatchesLoading } = useGetSeedBatchesQuery();
+  const { data: apiSupplies = [], isLoading: isSuppliesLoading } = useGetSeedSuppliesQuery();
+  const { data: apiAllocations = [], isLoading: isAllocationsLoading } = useGetAllocationsQuery();
+  const { data: apiFarmers = [] } = useGetFarmersQuery();
+  const { data: apiFields = [] } = useGetFieldsQuery();
+  const { data: apiVendors = [] } = useGetVendorsQuery();
 
-  const [createAllocation, { isLoading: isAllocating }] = useCreateAllocationMutation();
+  const [createAllocation, { isLoading: isCreatingAlloc }] = useCreateAllocationMutation();
   const [createSeedSupply, { isLoading: isCreatingSupply }] = useCreateSeedSupplyMutation();
 
-  // Allocation Form
+  const farmers = apiFarmers.length > 0 ? apiFarmers : MOCK_FARMERS.map((f) => ({
+    id: f.id,
+    name: f.fullName,
+    mobile_number: f.mobile,
+    village: f.village,
+    district: f.district,
+  }));
+
+  const fields = apiFields.length > 0 ? apiFields : MOCK_LAND_PARCELS.map((p) => ({
+    id: p.id,
+    farmer_id: p.farmerId,
+    field_name: p.parcelCode,
+    area: p.totalAcreage,
+    crop: 'Wheat',
+  }));
+
+  const vendors = apiVendors;
+
+  const batches = apiBatches;
+  const supplies = apiSupplies;
+  const allocations = apiAllocations;
+
+  // Form Hooks
   const {
-    register: registerAlloc,
     handleSubmit: handleSubmitAlloc,
     reset: resetAlloc,
     setValue: setValueAlloc,
@@ -170,6 +195,17 @@ export default function SeedDistributionPage() {
 
   const selectedVendorId = watchSupply('vendor_id');
 
+  const onInvalidAlloc = (errors: any) => {
+    const errorMessages = Object.values(errors)
+      .map((err: any) => err?.message)
+      .filter(Boolean);
+    if (errorMessages.length > 0) {
+      toast.error(`Mandatory field required: ${errorMessages[0]}`);
+    } else {
+      toast.error('Please fill all mandatory fields marked with *');
+    }
+  };
+
   const onAllocationSubmit = async (values: AllocationFormValues) => {
     try {
       await createAllocation({
@@ -188,6 +224,17 @@ export default function SeedDistributionPage() {
       resetAlloc();
     } catch (err: any) {
       toast.error(err?.data?.detail || 'Allocation failed. Please verify stock availability.');
+    }
+  };
+
+  const onInvalidSupply = (errors: any) => {
+    const errorMessages = Object.values(errors)
+      .map((err: any) => err?.message)
+      .filter(Boolean);
+    if (errorMessages.length > 0) {
+      toast.error(`Mandatory field required: ${errorMessages[0]}`);
+    } else {
+      toast.error('Please fill all mandatory fields marked with *');
     }
   };
 
@@ -216,299 +263,376 @@ export default function SeedDistributionPage() {
       searchQuery === '' ||
       farmerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       fieldName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      batchNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.id.includes(searchQuery)
+      batchNo.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
+  const totalAllocItems = filteredAllocations.length;
+  const totalAllocPages = Math.ceil(totalAllocItems / allocPageSize);
+  const paginatedAllocations = filteredAllocations.slice(
+    (allocPage - 1) * allocPageSize,
+    allocPage * allocPageSize
+  );
+
+  // Filtered Supplies
+  const filteredSupplies = supplies.filter((s) => {
+    const vendorName = vendors.find((v) => v.id === s.vendor_id)?.vendor_name || '';
+    const company = vendors.find((v) => v.id === s.vendor_id)?.company_name || '';
+    return (
+      searchQuery === '' ||
+      vendorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.variety.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
+  const totalSupplyItems = filteredSupplies.length;
+  const totalSupplyPages = Math.ceil(totalSupplyItems / supplyPageSize);
+  const paginatedSupplies = filteredSupplies.slice(
+    (supplyPage - 1) * supplyPageSize,
+    supplyPage * supplyPageSize
+  );
+
+  // Searchable Select Options
+  const batchOptions = batches.map((b) => ({
+    value: b.id,
+    label: `${b.batch_number}`,
+    subLabel: `Available: ${b.available_quantity} ${b.unit}`,
+    disabled: b.available_quantity <= 0,
+  }));
+
+  const farmerOptions = farmers.map((f) => ({
+    value: f.id,
+    label: f.name,
+    subLabel: `${f.village} (${f.district})`,
+  }));
+
+  const fieldOptions = farmerFields.map((f) => ({
+    value: f.id,
+    label: f.field_name,
+    subLabel: `${f.area} Acres (${f.crop || 'Wheat'})`,
+  }));
+
+  const vendorOptions = vendors.map((v) => ({
+    value: v.id,
+    label: v.vendor_name,
+    subLabel: v.company_name,
+  }));
+
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
+    <div className="space-y-6">
+      {/* Page Header */}
       <PageHeader
-        title="Certified Seed Inventory & Allocations"
-        description="Receive vendor seed supplies, monitor real-time stock balances, and allocate certified seed batches to farmer plots."
+        title="Seed Procurement & Distribution"
+        description="Warehouse stock inventory, vendor deliveries, and certified seed allotments to verified farmer parcels."
         actionButton={{
-          label: 'New Seed Allocation',
-          icon: Plus,
-          onClick: () => {
-            if (batches.length > 0 && !selectedBatchId) {
-              const activeBatch = batches.find((b) => b.available_quantity > 0) || batches[0];
-              setValueAlloc('seed_batch_id', activeBatch.id);
-            }
-            if (farmers.length > 0 && !selectedFarmerId) {
-              setValueAlloc('farmer_id', farmers[0].id);
-            }
-            setAddAllocationModalOpen(true);
-          },
+          label: 'Distribute Seed to Farmer',
+          icon: Sprout,
+          onClick: () => setAddAllocationModalOpen(true),
         }}
       >
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            if (vendors.length > 0 && !selectedVendorId) {
-              setValueSupply('vendor_id', vendors[0].id);
-            }
-            setAddSupplyModalOpen(true);
-          }}
+          onClick={() => setAddSupplyModalOpen(true)}
           className="gap-1.5 text-xs font-semibold"
         >
-          <Building2 className="h-3.5 w-3.5" />
-          Receive Vendor Supply
+          <Truck className="h-3.5 w-3.5 text-primary" />
+          Receive Vendor Delivery
         </Button>
       </PageHeader>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Metrics Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Seed Received"
-          value={`${(totalReceivedStock / 1000).toFixed(1)} MT`}
-          subtitle={`${totalReceivedStock.toLocaleString()} KG across all batches`}
-          icon={Package}
+          title="Warehouse Stock"
+          value={`${totalReceivedStock.toLocaleString()} KG`}
+          subtitle="Total Certified Inflow"
+          icon={Warehouse}
           variant="primary"
         />
         <MetricCard
-          title="Stock Allocated"
-          value={`${(totalAllocatedStock / 1000).toFixed(1)} MT`}
-          subtitle={`${allocations.length} Active Farmer Dispatches`}
+          title="Allocated to Farmers"
+          value={`${totalAllocatedStock.toLocaleString()} KG`}
+          subtitle={`${allocations.length} Active Field Allotments`}
+          icon={ShoppingBag}
+        />
+        <MetricCard
+          title="Available Inventory"
+          value={`${totalAvailableStock.toLocaleString()} KG`}
+          subtitle="Ready for Field Allocation"
           icon={Layers}
         />
         <MetricCard
-          title="Available In Warehouse"
-          value={`${(totalAvailableStock / 1000).toFixed(1)} MT`}
-          subtitle={`${batches.filter((b) => b.available_quantity > 0).length} Ready Batches`}
-          icon={Sparkles}
-        />
-        <MetricCard
-          title="Active Seed Vendors"
-          value={`${vendors.filter((v) => v.status === 'ACTIVE').length} Suppliers`}
-          subtitle="Certified Seed Quality"
-          icon={Building2}
+          title="Certified Batches"
+          value={batches.length}
+          subtitle="High-Yield Varieties (HD-2967, PBW-550)"
+          icon={CheckCircle2}
         />
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="grid w-full max-w-lg grid-cols-3">
-          <TabsTrigger value="ALLOCATIONS" className="text-xs font-semibold">
-            Allocations ({allocations.length})
-          </TabsTrigger>
-          <TabsTrigger value="INVENTORY" className="text-xs font-semibold">
-            Batches & Stock ({batches.length})
-          </TabsTrigger>
-          <TabsTrigger value="SUPPLIES" className="text-xs font-semibold">
-            Vendor Supplies ({supplies.length})
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <TabsList className="grid w-full sm:w-auto grid-cols-3">
+            <TabsTrigger value="allocations" className="text-xs">
+              Farmer Allocations ({allocations.length})
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="text-xs">
+              Batches ({batches.length})
+            </TabsTrigger>
+            <TabsTrigger value="supplies" className="text-xs">
+              Vendor Supplies ({supplies.length})
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Tab 1: Allocations */}
-        <TabsContent value="ALLOCATIONS" className="space-y-4 pt-2">
           <SearchFilterBar
             searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            searchPlaceholder="Search by farmer name, field, or batch number..."
-            onReset={() => setSearchQuery('')}
+            onSearchChange={(q) => {
+              setSearchQuery(q);
+              setAllocPage(1);
+              setSupplyPage(1);
+            }}
+            searchPlaceholder="Search farmer, plot, batch..."
+            filters={[]}
+            onReset={() => {
+              setSearchQuery('');
+              setAllocPage(1);
+              setSupplyPage(1);
+            }}
+            className="w-full sm:w-72"
           />
+        </div>
 
-          {isLoadingAlloc ? (
+        {/* TAB 1: FIELD ALLOCATIONS */}
+        <TabsContent value="allocations" className="space-y-4">
+          {isAllocationsLoading ? (
             <Card className="border border-border/80 shadow-2xs">
-              <CardContent className="p-8 text-center">
-                <RefreshCw className="h-5 w-5 animate-spin mx-auto text-primary mb-2" />
-                <p className="text-xs text-muted-foreground">Loading allocations...</p>
+              <CardContent className="p-8 text-center text-xs text-muted-foreground">
+                <RefreshCw className="h-5 w-5 animate-spin text-primary mx-auto mb-2" />
+                Loading allocations...
               </CardContent>
             </Card>
           ) : filteredAllocations.length === 0 ? (
             <EmptyState
-              icon={Package}
-              title={searchQuery ? 'No matching allocations found' : 'No seed allocations recorded yet'}
-              description={
-                searchQuery
-                  ? 'Try changing your search keywords.'
-                  : 'Allocate certified seed from your warehouse inventory directly to farmer field plots.'
-              }
+              icon={Sprout}
+              title="No Seed Allocations Found"
+              description="No certified seed has been allocated yet matching your search filter."
               action={{
-                label: 'Allocate Seeds',
+                label: 'Make First Allocation',
                 onClick: () => setAddAllocationModalOpen(true),
                 icon: Plus,
               }}
             />
           ) : (
             <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
-                    <TableHead className="font-bold">Allocation ID</TableHead>
-                    <TableHead className="font-bold">Farmer Recipient</TableHead>
-                    <TableHead className="font-bold">Target Field Plot</TableHead>
-                    <TableHead className="font-bold">Batch Number</TableHead>
-                    <TableHead className="font-bold text-right">Quantity</TableHead>
-                    <TableHead className="font-bold">Date</TableHead>
-                    <TableHead className="text-right">Receipt</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAllocations.map((alloc) => {
+              {viewMode === 'table' ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
+                      <TableHead className="font-bold">Slip No.</TableHead>
+                      <TableHead className="font-bold">Farmer Recipient</TableHead>
+                      <TableHead className="font-bold">Target Field Plot</TableHead>
+                      <TableHead className="font-bold">Batch Number</TableHead>
+                      <TableHead className="font-bold text-right">Quantity</TableHead>
+                      <TableHead className="font-bold">Date</TableHead>
+                      <TableHead className="text-right">Passbook Receipt</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedAllocations.map((alloc) => {
+                      const farmer = farmers.find((f) => f.id === alloc.farmer_id);
+                      const field = fields.find((f) => f.id === alloc.field_id);
+                      const batch = batches.find((b) => b.id === alloc.seed_batch_id);
+
+                      return (
+                        <TableRow key={alloc.id} className="hover:bg-muted/30 text-xs">
+                          <TableCell>
+                            <span className="font-mono font-bold text-foreground block">
+                              SLIP-#{alloc.id.slice(0, 6).toUpperCase()}
+                            </span>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="font-semibold text-foreground">
+                              {farmer ? farmer.name : 'Unknown Farmer'}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground font-mono">
+                              {farmer ? farmer.mobile_number : ''}
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="font-medium text-foreground">
+                              {field ? field.field_name : 'General Plot'}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {field ? `${field.area} Acres` : ''}
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono text-[11px] bg-muted/60">
+                              {batch ? batch.batch_number : 'Batch'}
+                            </Badge>
+                          </TableCell>
+
+                          <TableCell className="text-right font-mono font-bold text-foreground">
+                            {alloc.quantity} {alloc.unit || 'KG'}
+                          </TableCell>
+
+                          <TableCell>
+                            <span className="font-mono text-[11px] text-muted-foreground">
+                              {alloc.allocation_date}
+                            </span>
+                          </TableCell>
+
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedAllocation(alloc);
+                                setReceiptModalOpen(true);
+                              }}
+                              className="h-7 text-xs gap-1 font-semibold"
+                            >
+                              <Printer className="h-3.5 w-3.5 text-primary" />
+                              View Slip
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                /* Card Grid View */
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {paginatedAllocations.map((alloc) => {
                     const farmer = farmers.find((f) => f.id === alloc.farmer_id);
                     const field = fields.find((f) => f.id === alloc.field_id);
                     const batch = batches.find((b) => b.id === alloc.seed_batch_id);
 
                     return (
-                      <TableRow key={alloc.id} className="hover:bg-muted/30 text-xs">
-                        <TableCell>
-                          <span className="font-mono font-bold text-foreground block">
-                            ID: {alloc.id.slice(0, 8)}...
-                          </span>
-                        </TableCell>
-
-                        <TableCell>
-                          <div className="font-semibold text-foreground">{farmer ? farmer.name : 'Unknown Farmer'}</div>
-                          <div className="text-[11px] text-muted-foreground font-mono">
-                            {farmer ? farmer.mobile_number : ''}
+                      <Card key={alloc.id} className="border hover:border-primary/40 transition-all shadow-xs">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="font-mono font-bold text-xs text-primary block">
+                                SLIP-#{alloc.id.slice(0, 6).toUpperCase()}
+                              </span>
+                              <h4 className="font-bold text-sm text-foreground mt-0.5">
+                                {farmer?.name || 'Farmer'}
+                              </h4>
+                              <p className="text-[11px] text-muted-foreground">{farmer?.village}</p>
+                            </div>
+                            <Badge variant="outline" className="text-xs font-mono font-bold bg-muted/50">
+                              {alloc.quantity} {alloc.unit || 'KG'}
+                            </Badge>
                           </div>
-                        </TableCell>
 
-                        <TableCell>
-                          <div className="font-medium text-foreground">{field ? field.field_name : 'General Plot'}</div>
-                          <div className="text-[11px] text-muted-foreground">{field ? `${field.area} Acres` : ''}</div>
-                        </TableCell>
+                          <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t text-muted-foreground">
+                            <div>
+                              <span className="text-[11px] block">Field Plot:</span>
+                              <span className="font-semibold text-foreground">{field?.field_name || 'Plot'}</span>
+                            </div>
+                            <div>
+                              <span className="text-[11px] block">Batch Number:</span>
+                              <span className="font-mono text-foreground">{batch?.batch_number}</span>
+                            </div>
+                          </div>
 
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono text-[11px] bg-muted/60">
-                            {batch ? batch.batch_number : 'Batch'}
-                          </Badge>
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          <span className="font-bold text-foreground text-sm">
-                            {alloc.quantity} {alloc.unit}
-                          </span>
-                        </TableCell>
-
-                        <TableCell>
-                          <span className="font-mono text-[11px] text-muted-foreground">{alloc.allocation_date}</span>
-                        </TableCell>
-
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 gap-1 text-xs"
-                            onClick={() => {
-                              setSelectedAllocation(alloc);
-                              setReceiptModalOpen(true);
-                            }}
-                          >
-                            <Receipt className="h-3.5 w-3.5" />
-                            Passbook
-                          </Button>
-                        </TableCell>
-                      </TableRow>
+                          <div className="pt-2 border-t flex items-center justify-between">
+                            <span className="text-[11px] text-muted-foreground font-mono">{alloc.allocation_date}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedAllocation(alloc);
+                                setReceiptModalOpen(true);
+                              }}
+                              className="h-7 text-xs gap-1 font-semibold"
+                            >
+                              <Printer className="h-3 w-3" />
+                              Slip
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
                     );
                   })}
-                </TableBody>
-              </Table>
+                </div>
+              )}
+
+              {/* DataTable Pagination */}
+              <DataTablePagination
+                currentPage={allocPage}
+                totalPages={totalAllocPages}
+                pageSize={allocPageSize}
+                totalItems={totalAllocItems}
+                onPageChange={setAllocPage}
+                onPageSizeChange={setAllocPageSize}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
             </div>
           )}
         </TabsContent>
 
-        {/* Tab 2: Batches & Real-time Inventory */}
-        <TabsContent value="INVENTORY" className="space-y-4 pt-2">
-          {isLoadingBatches ? (
-            <Card className="border border-border/80 shadow-2xs">
-              <CardContent className="p-8 text-center">
-                <RefreshCw className="h-5 w-5 animate-spin mx-auto text-primary mb-2" />
-                <p className="text-xs text-muted-foreground">Loading batch inventory...</p>
-              </CardContent>
-            </Card>
-          ) : batches.length === 0 ? (
-            <EmptyState
-              icon={Package}
-              title="No Seed Batches Available"
-              description="Receive supplies from certified vendors to generate inventory batches."
-              action={{
-                label: 'Receive First Supply',
-                onClick: () => setAddSupplyModalOpen(true),
-                icon: Plus,
-              }}
-            />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {batches.map((batch) => {
-                const percentAllocated = Math.round((batch.allocated_quantity / (batch.received_quantity || 1)) * 100);
+        {/* TAB 2: INVENTORY BATCHES */}
+        <TabsContent value="inventory" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {batches.map((b) => (
+              <Card key={b.id} className="border shadow-2xs hover:border-border transition-colors">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="font-mono text-[11px] bg-primary/10 text-primary border-primary/30">
+                      {b.batch_number}
+                    </Badge>
+                    <Badge variant={b.available_quantity > 0 ? 'default' : 'secondary'} className="text-[10px]">
+                      {b.available_quantity > 0 ? 'IN STOCK' : 'EXHAUSTED'}
+                    </Badge>
+                  </div>
+                  <CardTitle className="text-base font-bold pt-1">
+                    {b.available_quantity.toLocaleString()} {b.unit} Available
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-muted-foreground text-[11px]">
+                      <span>Allocated / Dispatched</span>
+                      <span className="font-mono">{b.allocated_quantity} {b.unit}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{
+                          width: `${Math.min(100, (b.allocated_quantity / b.received_quantity) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
 
-                return (
-                  <Card key={batch.id} className="border shadow-xs">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline" className="font-mono text-[11px] font-bold">
-                          {batch.batch_number}
-                        </Badge>
-                        <Badge
-                          variant={batch.available_quantity > 0 ? 'default' : 'secondary'}
-                          className={batch.available_quantity > 0 ? 'bg-emerald-500/15 text-emerald-700' : ''}
-                        >
-                          {batch.available_quantity > 0 ? 'In Stock' : 'Depleted'}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-sm font-bold pt-1">
-                        Available: {batch.available_quantity.toLocaleString()} {batch.unit}
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Total Received: {batch.received_quantity.toLocaleString()} {batch.unit}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-xs">
-                      {/* Inventory progress bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] text-muted-foreground">
-                          <span>Allocated ({percentAllocated}%)</span>
-                          <span>{batch.allocated_quantity} {batch.unit}</span>
-                        </div>
-                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all duration-300"
-                            style={{ width: `${percentAllocated}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t flex items-center justify-between text-[11px] text-muted-foreground">
-                        <span>Created: {new Date(batch.created_at).toLocaleDateString()}</span>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          disabled={batch.available_quantity <= 0}
-                          onClick={() => {
-                            setValueAlloc('seed_batch_id', batch.id);
-                            setAddAllocationModalOpen(true);
-                          }}
-                        >
-                          Allocate
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                  <div className="pt-2 border-t flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                    <span>Received: {b.received_quantity} {b.unit}</span>
+                    <span>Created: {b.created_at ? b.created_at.split('T')[0] : 'N/A'}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
-        {/* Tab 3: Vendor Supplies */}
-        <TabsContent value="SUPPLIES" className="space-y-4 pt-2">
-          {isLoadingSupplies ? (
-            <Card className="border border-border/80 shadow-2xs">
-              <CardContent className="p-8 text-center">
-                <RefreshCw className="h-5 w-5 animate-spin mx-auto text-primary mb-2" />
-                <p className="text-xs text-muted-foreground">Loading vendor supplies...</p>
-              </CardContent>
-            </Card>
-          ) : supplies.length === 0 ? (
+        {/* TAB 3: VENDOR SUPPLIES */}
+        <TabsContent value="supplies" className="space-y-4">
+          {isSuppliesLoading ? (
+            <Card className="p-8 text-center text-xs text-muted-foreground">Loading supplies...</Card>
+          ) : filteredSupplies.length === 0 ? (
             <EmptyState
-              icon={Building2}
-              title="No Vendor Supply Deliveries Recorded"
-              description="Record official vendor seed dispatches and deliveries."
+              icon={Truck}
+              title="No Vendor Supplies Recorded"
+              description="Record new incoming certified seed batches from authorized seed vendors."
               action={{
                 label: 'Record Supply',
                 onClick: () => setAddSupplyModalOpen(true),
@@ -520,30 +644,36 @@ export default function SeedDistributionPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
-                    <TableHead className="font-bold">Vendor Name</TableHead>
+                    <TableHead className="font-bold">Vendor Organization</TableHead>
                     <TableHead className="font-bold">Crop & Variety</TableHead>
                     <TableHead className="font-bold">PO / Invoice Ref</TableHead>
-                    <TableHead className="font-bold">Supply Date</TableHead>
+                    <TableHead className="font-bold">Delivery Date</TableHead>
                     <TableHead className="font-bold">Remarks</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {supplies.map((supply) => {
+                  {paginatedSupplies.map((supply) => {
                     const vendor = vendors.find((v) => v.id === supply.vendor_id);
                     return (
                       <TableRow key={supply.id} className="hover:bg-muted/30 text-xs">
                         <TableCell>
-                          <div className="font-semibold text-foreground">{vendor ? vendor.vendor_name : 'Vendor'}</div>
-                          <div className="text-[11px] text-muted-foreground">{vendor ? vendor.company_name : ''}</div>
+                          <div className="font-semibold text-foreground">
+                            {vendor ? vendor.company_name : 'Authorized Vendor'}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground font-medium">
+                            {vendor ? vendor.vendor_name : ''}
+                          </div>
                         </TableCell>
 
                         <TableCell>
-                          <span className="font-medium text-foreground">{supply.crop}</span>
-                          <span className="text-[11px] text-muted-foreground block font-mono">{supply.variety}</span>
+                          <div className="font-medium text-foreground">{supply.variety}</div>
+                          <div className="text-[11px] text-muted-foreground">{supply.crop}</div>
                         </TableCell>
 
                         <TableCell>
-                          <span className="font-mono text-xs">{supply.purchase_reference || 'N/A'}</span>
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            {supply.purchase_reference || 'N/A'}
+                          </span>
                         </TableCell>
 
                         <TableCell>
@@ -558,40 +688,42 @@ export default function SeedDistributionPage() {
                   })}
                 </TableBody>
               </Table>
+
+              <DataTablePagination
+                currentPage={supplyPage}
+                totalPages={totalSupplyPages}
+                pageSize={supplyPageSize}
+                totalItems={totalSupplyItems}
+                onPageChange={setSupplyPage}
+                onPageSizeChange={setSupplyPageSize}
+                showViewToggle={false}
+              />
             </div>
           )}
         </TabsContent>
       </Tabs>
 
-      {/* New Seed Allocation Modal (Batch -> Farmer -> Field) */}
+      {/* New Seed Allocation Modal (Searchable Selects) */}
       <Dialog open={addAllocationModalOpen} onOpenChange={setAddAllocationModalOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Allocate Certified Seed to Field</DialogTitle>
+            <DialogTitle className="text-lg font-bold">Issue Seed to Farmer (Field Plot Allotment)</DialogTitle>
             <DialogDescription className="text-xs">
               Select available warehouse batch, recipient farmer, and verified field plot.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmitAlloc(onAllocationSubmit)} className="space-y-4 pt-2">
+          <form onSubmit={handleSubmitAlloc(onAllocationSubmit, onInvalidAlloc)} className="space-y-4 pt-2">
             {/* Step 1: Batch */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">1. Select Seed Batch (Inventory Source) *</Label>
-              <Select
+              <SearchableSelect
+                options={batchOptions}
                 value={selectedBatchId}
-                onValueChange={(v) => { if (v) setValueAlloc('seed_batch_id', v); }}
-              >
-                <SelectTrigger className="w-full text-xs h-9">
-                  <SelectValue placeholder="Choose in-stock batch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {batches.map((b) => (
-                    <SelectItem key={b.id} value={b.id} disabled={b.available_quantity <= 0}>
-                      {b.batch_number} &bull; Available: {b.available_quantity} {b.unit}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(val) => setValueAlloc('seed_batch_id', val)}
+                placeholder="Choose in-stock batch..."
+                searchPlaceholder="Search batch number..."
+              />
               {errorsAlloc.seed_batch_id && (
                 <p className="text-[10px] text-destructive">{errorsAlloc.seed_batch_id.message}</p>
               )}
@@ -600,31 +732,21 @@ export default function SeedDistributionPage() {
             {/* Step 2: Farmer */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">2. Select Farmer Recipient *</Label>
-              <Select
+              <SearchableSelect
+                options={farmerOptions}
                 value={selectedFarmerId}
-                onValueChange={(v) => {
-                  if (v) {
-                    setValueAlloc('farmer_id', v);
-                    const farmerPlot = fields.find((f) => f.farmer_id === v);
-                    if (farmerPlot) {
-                      setValueAlloc('field_id', farmerPlot.id);
-                    } else {
-                      setValueAlloc('field_id', '');
-                    }
+                onChange={(val) => {
+                  setValueAlloc('farmer_id', val);
+                  const farmerPlot = fields.find((f) => f.farmer_id === val);
+                  if (farmerPlot) {
+                    setValueAlloc('field_id', farmerPlot.id);
+                  } else {
+                    setValueAlloc('field_id', '');
                   }
                 }}
-              >
-                <SelectTrigger className="w-full text-xs h-9">
-                  <SelectValue placeholder="Choose farmer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {farmers.map((f) => (
-                    <SelectItem key={f.id} value={f.id}>
-                      {f.name} &bull; {f.village} ({f.district})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Choose farmer recipient..."
+                searchPlaceholder="Search farmer name, village..."
+              />
               {errorsAlloc.farmer_id && (
                 <p className="text-[10px] text-destructive">{errorsAlloc.farmer_id.message}</p>
               )}
@@ -638,80 +760,48 @@ export default function SeedDistributionPage() {
                   This farmer has no registered field plots yet. Please register a field plot first.
                 </div>
               ) : (
-                <Select
+                <SearchableSelect
+                  options={fieldOptions}
                   value={selectedFieldId}
-                  onValueChange={(v) => { if (v) setValueAlloc('field_id', v); }}
-                >
-                  <SelectTrigger className="w-full text-xs h-9">
-                    <SelectValue placeholder="Choose field plot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {farmerFields.map((f) => (
-                      <SelectItem key={f.id} value={f.id}>
-                        {f.field_name} &bull; {f.area} Acres ({f.crop || 'Wheat'})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(val) => setValueAlloc('field_id', val)}
+                  placeholder="Choose field plot..."
+                  searchPlaceholder="Search field plot..."
+                />
               )}
               {errorsAlloc.field_id && (
                 <p className="text-[10px] text-destructive">{errorsAlloc.field_id.message}</p>
               )}
             </div>
 
-            {/* Step 4: Quantity */}
+            {/* Quantity */}
             <div className="space-y-1.5">
-              <div className="flex justify-between">
-                <Label className="text-xs font-semibold">Allocation Quantity ({currentBatch?.unit || 'KG'}) *</Label>
-                {currentBatch && (
-                  <span className="text-[11px] text-muted-foreground font-mono">
-                    Max Available: {currentBatch.available_quantity} {currentBatch.unit}
-                  </span>
-                )}
-              </div>
+              <Label className="text-xs font-semibold">4. Allotment Quantity (KG) *</Label>
               <Input
                 type="number"
-                step="1"
+                step="5"
                 min="1"
-                max={currentBatch?.available_quantity || 1000}
                 placeholder="50"
-                {...registerAlloc('quantity', { valueAsNumber: true })}
-                className="text-xs h-9"
+                value={requestedQuantity}
+                onChange={(e) => setValueAlloc('quantity', parseFloat(e.target.value) || 0)}
+                className="text-xs"
               />
               {errorsAlloc.quantity && (
                 <p className="text-[10px] text-destructive">{errorsAlloc.quantity.message}</p>
               )}
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Remarks / Dispatch Notes</Label>
-              <Input
-                placeholder="e.g., Certified tag issued for Kharif / Rabi sowing"
-                {...registerAlloc('remarks')}
-                className="text-xs h-9"
-              />
-            </div>
-
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setAddAllocationModalOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isAllocating || farmerFields.length === 0 || !currentBatch || requestedQuantity > currentBatch.available_quantity}
-                className="font-semibold gap-1.5"
-              >
-                {isAllocating ? (
+              <Button type="submit" size="sm" disabled={isCreatingAlloc} className="font-semibold">
+                {isCreatingAlloc ? (
                   <>
                     <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
                     Allocating...
                   </>
                 ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4" />
-                    Confirm Allocation
-                  </>
+                  'Confirm Seed Allocation'
                 )}
               </Button>
             </DialogFooter>
@@ -719,9 +809,9 @@ export default function SeedDistributionPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Receive New Vendor Seed Supply Modal */}
+      {/* Receive Vendor Delivery Modal */}
       <Dialog open={addSupplyModalOpen} onOpenChange={setAddSupplyModalOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold">Receive Vendor Seed Supply</DialogTitle>
             <DialogDescription className="text-xs">
@@ -729,24 +819,16 @@ export default function SeedDistributionPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmitSupply(onSupplySubmit)} className="space-y-3.5 pt-2">
+          <form onSubmit={handleSubmitSupply(onSupplySubmit, onInvalidSupply)} className="space-y-3.5 pt-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Authorized Seed Vendor *</Label>
-              <Select
+              <SearchableSelect
+                options={vendorOptions}
                 value={selectedVendorId}
-                onValueChange={(v) => { if (v) setValueSupply('vendor_id', v); }}
-              >
-                <SelectTrigger className="w-full text-xs h-8.5">
-                  <SelectValue placeholder="Select Vendor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vendors.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.vendor_name} ({v.company_name})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(val) => setValueSupply('vendor_id', val)}
+                placeholder="Select Vendor..."
+                searchPlaceholder="Search vendor name, company..."
+              />
               {errorsSupply.vendor_id && (
                 <p className="text-[10px] text-destructive">{errorsSupply.vendor_id.message}</p>
               )}
@@ -755,31 +837,19 @@ export default function SeedDistributionPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Crop Type *</Label>
-                <Input
-                  placeholder="e.g., Wheat"
-                  {...registerSupply('crop')}
-                  className="text-xs h-8.5"
-                />
+                <Input placeholder="Wheat" {...registerSupply('crop')} className="text-xs" />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Seed Variety *</Label>
-                <Input
-                  placeholder="e.g., PBW-550 / HD-2967"
-                  {...registerSupply('variety')}
-                  className="text-xs h-8.5"
-                />
+                <Input placeholder="e.g., HD-2967 / PBW-550" {...registerSupply('variety')} className="text-xs" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Batch / Lot Number *</Label>
-                <Input
-                  placeholder="e.g., BATCH-WHT-2026-001"
-                  {...registerSupply('batch_number')}
-                  className="text-xs h-8.5"
-                />
+                <Input placeholder="e.g., BATCH-WHT-2026-009" {...registerSupply('batch_number')} className="text-xs" />
                 {errorsSupply.batch_number && (
                   <p className="text-[10px] text-destructive">{errorsSupply.batch_number.message}</p>
                 )}
@@ -792,7 +862,7 @@ export default function SeedDistributionPage() {
                   step="10"
                   placeholder="500"
                   {...registerSupply('quantity', { valueAsNumber: true })}
-                  className="text-xs h-8.5"
+                  className="text-xs"
                 />
                 {errorsSupply.quantity && (
                   <p className="text-[10px] text-destructive">{errorsSupply.quantity.message}</p>
@@ -803,30 +873,13 @@ export default function SeedDistributionPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Delivery Date *</Label>
-                <Input
-                  type="date"
-                  {...registerSupply('supply_date')}
-                  className="text-xs h-8.5"
-                />
+                <Input type="date" {...registerSupply('supply_date')} className="text-xs" />
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs">PO / Invoice Number</Label>
-                <Input
-                  placeholder="e.g., PO-2026-089"
-                  {...registerSupply('purchase_reference')}
-                  className="text-xs h-8.5"
-                />
+                <Input placeholder="e.g., PO-2026-089" {...registerSupply('purchase_reference')} className="text-xs" />
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Remarks</Label>
-              <Input
-                placeholder="e.g., Certified seed delivery with test certificates"
-                {...registerSupply('remarks')}
-                className="text-xs h-8.5"
-              />
             </div>
 
             <DialogFooter className="pt-2">
@@ -858,7 +911,9 @@ export default function SeedDistributionPage() {
                   OFFICIAL DIGITAL PASSBOOK SLIP
                 </Badge>
                 <h3 className="font-bold text-base text-foreground">Krishi AgriTech Seed Distribution</h3>
-                <p className="text-xs text-muted-foreground font-mono">Allocation ID: #{selectedAllocation.id.slice(0, 12)}</p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  Allocation Slip: SLIP-#{selectedAllocation.id.slice(0, 6).toUpperCase()}
+                </p>
               </div>
 
               <div className="space-y-2 text-xs">
@@ -876,14 +931,14 @@ export default function SeedDistributionPage() {
                 </div>
                 <div className="flex justify-between py-1 border-b border-dashed">
                   <span className="text-muted-foreground">Batch Number:</span>
-                  <span className="font-mono font-semibold">
+                  <span className="font-mono font-bold">
                     {batches.find((b) => b.id === selectedAllocation.seed_batch_id)?.batch_number || 'Batch'}
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-dashed">
-                  <span className="text-muted-foreground">Allocated Quantity:</span>
-                  <span className="font-bold text-primary">
-                    {selectedAllocation.quantity} {selectedAllocation.unit}
+                  <span className="text-muted-foreground">Quantity Allotted:</span>
+                  <span className="font-bold font-mono text-emerald-600">
+                    {selectedAllocation.quantity} {selectedAllocation.unit || 'KG'}
                   </span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-dashed">
@@ -892,15 +947,25 @@ export default function SeedDistributionPage() {
                 </div>
               </div>
 
-              <DialogFooter>
+              <div className="p-2.5 bg-muted/60 rounded-md text-[11px] text-muted-foreground flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                <span>Certified high-germination seed under National Wheat Cultivation Program.</span>
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setReceiptModalOpen(false)}>
+                  Close
+                </Button>
                 <Button
+                  type="button"
+                  size="sm"
                   onClick={() => {
-                    toast.success('Passbook receipt printed successfully');
-                    setReceiptModalOpen(false);
+                    window.print();
                   }}
-                  className="w-full font-semibold"
+                  className="font-semibold gap-1.5"
                 >
-                  Print Digital Passbook Slip
+                  <Printer className="h-3.5 w-3.5" />
+                  Print Passbook Slip
                 </Button>
               </DialogFooter>
             </div>

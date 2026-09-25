@@ -225,7 +225,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-bold truncate text-foreground">Verified Grower</span>
-                  <span className="text-[10px] text-muted-foreground font-mono truncate">ID: FARM-2026-001</span>
+                  <span className="text-[10px] text-muted-foreground font-mono truncate">Passbook: PB-2026-001</span>
                 </div>
               </div>
               <div className="pt-1.5 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
@@ -241,7 +241,7 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
                 </div>
               } />
               <TooltipContent side="right" className="font-semibold text-xs py-1 px-2.5">
-                Verified Grower (FARM-2026-001)
+                Verified Grower (PB-2026-001)
               </TooltipContent>
             </Tooltip>
           )}

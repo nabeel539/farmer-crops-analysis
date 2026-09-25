@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Krishi AgriTech - System Workflow & Architecture</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    @page {
+      size: A4;
+      margin: 15mm 15mm 15mm 15mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #0f172a;
+      background-color: #ffffff;
+      line-height: 1.5;
+      font-size: 11.5pt;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #064e3b 0%, #0f766e 50%, #042f2e 100%);
+      color: white;
+      padding: 24px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      position: relative;
+      border: 1px solid #059669;
+    }
+
+    .header-banner h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+      color: #ffffff;
+    }
+
+    .header-banner p {
+      font-size: 10.5pt;
+      color: #a7f3d0;
+      margin-bottom: 12px;
+    }
+
+    .meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 8.5pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-emerald {
+      background-color: rgba(16, 185, 129, 0.25);
+      color: #ecfdf5;
+      border: 1px solid #10b981;
+    }
+
+    .badge-amber {
+      background-color: rgba(245, 158, 11, 0.25);
+      color: #fffbeb;
+      border: 1px solid #f59e0b;
+    }
+
+    .section-title {
+      font-size: 14pt;
+      font-weight: 800;
+      color: #064e3b;
+      margin-top: 22px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .card-emerald {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .card h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #064e3b;
+      margin-bottom: 6px;
+    }
+
+    .card p, .card ul {
+      font-size: 9.5pt;
+      color: #334155;
+    }
+
+    .card ul {
+      padding-left: 16px;
+      margin-top: 6px;
+    }
+
+    .card ul li {
+      margin-bottom: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px 0;
+      font-size: 9.5pt;
+    }
+
+    th {
+      background-color: #064e3b;
+      color: white;
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 700;
+      font-size: 9pt;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    .code-chip {
+      font-family: 'JetBrains Mono', monospace;
+      background: #e2e8f0;
+      color: #0f172a;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 8.5pt;
+      font-weight: 600;
+    }
+
+    .workflow-step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: #059669;
+      color: white;
+      font-weight: 800;
+      font-size: 11pt;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-content h4 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+
+    .step-content p {
+      font-size: 9.5pt;
+      color: #475569;
+      line-height: 1.4;
+    }
+
+    .highlight-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 10px 14px;
+      border-radius: 0 8px 8px 0;
+      font-size: 9.5pt;
+      color: #1e3a8a;
+      margin: 12px 0;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer {
+      margin-top: 24px;
+      padding-top: 10px;
+      border-top: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER BANNER -->
+  <div class="header-banner">
+    <h1>🌾 Krishi AgriTech Platform</h1>
+    <p>Farmer & Wheat Crop Monitoring System — End-to-End Workflow & Architecture Guide</p>
+    <div class="meta-badges">
+      <span class="badge badge-emerald">Next.js 16 App Router</span>
+      <span class="badge badge-emerald">TypeScript</span>
+      <span class="badge badge-emerald">Redux Toolkit</span>
+      <span class="badge badge-emerald">Leaflet Satellite GIS</span>
+      <span class="badge badge-amber">Rabi 2025-26 Season (MVP)</span>
+    </div>
+  </div>
+
+  <!-- SECTION 1: EXECUTIVE OVERVIEW -->
+  <div class="section-title">1. Executive Overview & Purpose</div>
+  <p style="font-size: 10pt; color: #334155; margin-bottom: 12px;">
+    <strong>Krishi AgriTech</strong> is an integrated digital agronomy platform designed to digitize farm parcel boundaries, track chronological wheat phenology, empower farmers with real-time micro-climate intelligence, and provide central management with satellite-driven ground truth visibility.
+  </p>
+
+  <div class="grid-3">
+    <div class="card card-emerald">
+      <h3>🚜 Farmer Portal (/farmer)</h3>
+      <p>Self-service mobile/web portal for daily activity logging (Date/Time), spray advisories, disease detection, and live mandi rates.</p>
+    </div>
+    <div class="card card-emerald">
+      <h3>🏛️ Admin Center (/admin)</h3>
+      <p>GIS Command Center with interactive satellite map, farmer parcel fly-to zoom, enrollment verification, and activity feeds.</p>
+    </div>
+    <div class="card card-emerald">
+      <h3>🔍 Field Officer (/field-officer)</h3>
+      <p>Ground auditing interface for cadastral boundary validation, pest threshold checks, and agronomist feedback.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2: END-TO-END SYSTEM WORKFLOW -->
+  <div class="section-title">2. Step-by-Step Operational Lifecycle Workflow</div>
+
+  <div class="workflow-step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <h4>Farmer Enrollment & KYC Verification (<span class="code-chip">/admin/farmers</span>)</h4>
+      <p>Central administration registers the grower's legal identity (Aadhaar/CNIC, Contact, Village, and Total Landholding). The grower is assigned an official code (e.g. <code>FARM-2026-001</code> for Sardar Gurpreet Singh).</p>
+    </div>
+  </div>
+
+  <div class="workflow-step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <h4>Satellite Land Parcel Geofencing (<span class="code-chip">/admin/land-parcels</span>)</h4>
+      <p>Using the interactive <strong>Satellite Location Picker</strong>, officers drop a draggable GPS pin or use live geolocation to map exact cadastral coordinates (e.g. Khasra #412/1, 18.0 Acres) with real-time acreage polygon computation.</p>
+    </div>
+  </div>
+
+  <div class="workflow-step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <h4>Crop Cycle Initiation & Phenology Monitoring (<span class="code-chip">/admin/crop-cycles</span>)</h4>
+      <p>The wheat cycle (HD-2967) is tracked across 11 agronomic stages (Sowing ➔ CRI ➔ Tillering ➔ Jointing ➔ Booting ➔ Heading/Flowering ➔ Maturity). Sentinel-2 NDVI canopy vigour (<code>0.86 Optimal</code>) is continuously monitored.</p>
+    </div>
+  </div>
+
+  <div class="workflow-step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <h4>Daily Field Operations & Activity Logging (<span class="code-chip">/farmer</span>)</h4>
+      <p>Growers open the <strong>"+ Record Activity"</strong> modal with exact <strong>Date & Time</strong> inputs to log operations like Urea Top-Dressing (<code>1 Bag/Acre = 18 Bags (900 Kg) Total</code>, ₹4,800 cost) or Canal Irrigation, instantly syncing to the central audit feed.</p>
+    </div>
+  </div>
+
+  <!-- PAGE BREAK FOR CLEAN PRINTING -->
+  <div class="page-break"></div>
+
+  <div class="workflow-step">
+    <div class="step-num">5</div>
+    <div class="step-content">
+      <h4>Micro-Climate Weather & Smart Spray Matrix (<span class="code-chip">/farmer</span>)</h4>
+      <p>Live agro-meteorological telemetry displays temperature (27°C), humidity (55%), root-zone moisture (64%), and calculates a <strong>Safe Spray Window (07:00 AM – 11:30 AM)</strong> based on wind velocity (<10 km/h) and 0% rain chance.</p>
+    </div>
+  </div>
+
+  <div class="workflow-step">
+    <div class="step-num">6</div>
+    <div class="step-content">
+      <h4>AI Crop Doctor & Pest Early Warning</h4>
+      <p>Growers capture leaf images to run on-device computer vision checks for Stripe/Yellow Rust (Puccinia striiformis) or connect directly with the Punjab Agromet Helpline (0800-15000).</p>
+    </div>
+  </div>
+
+  <div class="workflow-step">
+    <div class="step-num">7</div>
+    <div class="step-content">
+      <h4>Harvest Settlement & Mandi Procurement (<span class="code-chip">/admin/harvest</span>)</h4>
+      <p>Yield estimation (54.5 Mnds/Acre) is verified at harvest. Live grain pricing compares Govt MSP (₹2,275/Qtl) vs Khanna Mandi (₹2,420/Qtl) vs Silo Gate Rates (₹2,480/Qtl for &lt;11% moisture).</p>
+    </div>
+  </div>
+
+  <!-- SECTION 3: KEY DATA MODELS -->
+  <div class="section-title">3. Data Entities & Architecture</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Entity</th>
+        <th>Key Attributes</th>
+        <th>Description & Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Farmer</strong></td>
+        <td><code>id, fullName, cnic, phone, village, totalLandAcres</code></td>
+        <td>Verified grower identity, landholding summary, contact records.</td>
+      </tr>
+      <tr>
+        <td><strong>LandParcel</strong></td>
+        <td><code>id, farmerId, parcelCode, khasraNo, acreage, lat, lng</code></td>
+        <td>Cadastral plot geometry with satellite overlay coordinates.</td>
+      </tr>
+      <tr>
+        <td><strong>CropCycle</strong></td>
+        <td><code>id, cropVariety, season, currentStage, ndviScore, yield</code></td>
+        <td>Lifecycle progress from sowing to harvest with canopy vigour.</td>
+      </tr>
+      <tr>
+        <td><strong>FieldActivity</strong></td>
+        <td><code>id, farmerId, activityType, executedDate, dosage, cost</code></td>
+        <td>Timestamped log of fertilizers (Urea/DAP), water, and chemicals.</td>
+      </tr>
+      <tr>
+        <td><strong>WeatherDay</strong></td>
+        <td><code>date, tempMax, tempMin, windSpeed, rainChance, advice</code></td>
+        <td>Micro-climate forecasts and automated agronomic recommendations.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 4: ROUTE MAP & FILE DIRECTORY -->
+  <div class="section-title">4. Application Route Architecture</div>
+  <div class="grid-2">
+    <div class="card">
+      <h3>🏛️ Admin Routes</h3>
+      <ul>
+        <li><code>/admin</code>: Main Command Center + GIS Map + Farmer Dropdown</li>
+        <li><code>/admin/farmers</code>: Farmer Enrollment & Records</li>
+        <li><code>/admin/land-parcels</code>: Satellite Location Picker & CAD Plots</li>
+        <li><code>/admin/crop-cycles</code>: Wheat Phenology & NDVI Tracking</li>
+        <li><code>/admin/activities</code>: Live Field Activity Log Feed</li>
+        <li><code>/admin/harvest</code>: Silo Gate Intake & Yield Settlement</li>
+        <li><code>/admin/reports</code>: Farm Analytics & Audit Logs</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>🚜 Farmer & Officer Routes</h3>
+      <ul>
+        <li><code>/farmer</code> (Tab 1): My Wheat Crop & Phenology Stages</li>
+        <li><code>/farmer</code> (Tab 2): Land Parcels & Satellite Map</li>
+        <li><code>/farmer</code> (Tab 3): Field Operations Log & Date/Time Modal</li>
+        <li><code>/farmer</code> (Tab 4): AI Leaf Disease Doctor</li>
+        <li><code>/farmer</code> (Tab 5): 24-hr Weather & Live Mandi Rates</li>
+        <li><code>/field-officer</code>: Ground Scouting & GPS Validation</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="highlight-box">
+    <strong>💡 Key MVP Optimization:</strong> The Farmer Portal was streamlined to eliminate the legacy Digital Passbook module, focusing exclusively on active crop stages, daily fertilizer/irrigation logging, weather forecasting, and market pricing.
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>Krishi AgriTech Platform • Confidential & Internal Use</span>
+    <span>Generated: September 2026 • Version 1.0 (MVP)</span>
+  </div>
+
+</body>
+</html>

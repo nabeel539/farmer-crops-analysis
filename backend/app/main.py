@@ -3,7 +3,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import allocations, auth, farmers, fields, seeds, vendors
+from app.api.v1 import (
+    activities,
+    allocations,
+    auth,
+    crop_cycles,
+    farmers,
+    fields,
+    harvests,
+    reports,
+    seeds,
+    vendors,
+    visits,
+)
 from app.core.config import settings
 
 app = FastAPI(
@@ -17,8 +29,8 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:3000", "http://localhost:3001"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -31,6 +43,11 @@ app.include_router(seeds.router, prefix=API_PREFIX)
 app.include_router(farmers.router, prefix=API_PREFIX)
 app.include_router(fields.router, prefix=API_PREFIX)
 app.include_router(allocations.router, prefix=API_PREFIX)
+app.include_router(crop_cycles.router, prefix=API_PREFIX)
+app.include_router(activities.router, prefix=API_PREFIX)
+app.include_router(visits.router, prefix=API_PREFIX)
+app.include_router(harvests.router, prefix=API_PREFIX)
+app.include_router(reports.router, prefix=API_PREFIX)
 
 
 @app.get("/", tags=["Health"])

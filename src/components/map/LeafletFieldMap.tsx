@@ -62,25 +62,16 @@ export default function LeafletFieldMap({
     // Add Zoom Control at bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Add Base Satellite Layer (Esri World Imagery)
+    // Add Base Satellite Layer (Google Hybrid Satellite)
     const baseSatellite = L.tileLayer(
-      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
       {
-        maxZoom: 19,
-        attribution: 'Esri World Imagery'
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: 'Google Satellite',
       }
     ).addTo(map);
     tileLayerRef.current = baseSatellite;
-
-    // Add Boundaries/Labels Overlay
-    const labelLayer = L.tileLayer(
-      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-      {
-        maxZoom: 19,
-        opacity: 0.85
-      }
-    ).addTo(map);
-    labelLayerRef.current = labelLayer;
 
     mapInstanceRef.current = map;
 
@@ -100,22 +91,18 @@ export default function LeafletFieldMap({
 
     if (mapStyle === 'SATELLITE') {
       tileLayerRef.current = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        { maxZoom: 19 }
+        'https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: 'Google Satellite' }
       ).addTo(map);
     } else if (mapStyle === 'HYBRID') {
       tileLayerRef.current = L.tileLayer(
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        { maxZoom: 19 }
-      ).addTo(map);
-      labelLayerRef.current = L.tileLayer(
-        'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-        { maxZoom: 19, opacity: 0.9 }
+        'https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        { maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: 'Google Satellite' }
       ).addTo(map);
     } else if (mapStyle === 'STREETS') {
       tileLayerRef.current = L.tileLayer(
         'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        { maxZoom: 19 }
+        { maxZoom: 19, attribution: 'OpenStreetMap' }
       ).addTo(map);
     }
   }, [mapStyle]);

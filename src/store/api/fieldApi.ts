@@ -90,6 +90,16 @@ export const fieldApi = baseApi.injectEndpoints({
         { type: 'Field', id: 'LIST' },
       ],
     }),
+    deleteField: builder.mutation<void, string>({
+      query: (fieldId) => ({
+        url: `/fields/${fieldId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'Field', id },
+        { type: 'Field', id: 'LIST' },
+      ],
+    }),
     deleteFieldPolygon: builder.mutation<Field, string>({
       query: (fieldId) => ({
         url: `/fields/${fieldId}/polygon`,
@@ -108,5 +118,6 @@ export const {
   useGetFieldByIdQuery,
   useCreateFieldMutation,
   useUpdateFieldMutation,
+  useDeleteFieldMutation,
   useDeleteFieldPolygonMutation,
 } = fieldApi;

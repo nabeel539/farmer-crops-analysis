@@ -126,17 +126,25 @@ export interface CropCycle {
   sowingMethod: 'BROADCASTING' | 'DRILL_SOWING' | 'ZERO_TILLAGE' | 'BED_PLANTING';
   allocatedAcres: number;
   currentStage: CropCycleStage;
+  currentStageDays?: number;
   healthStatus: CropHealthStatus;
-  expectedHarvestDate: string;
+  expectedHarvestDate?: string;
+  estimatedHarvestDate?: string;
   actualHarvestDate?: string;
-  expectedYieldMaundsPerAcre: number;
-  targetTotalYieldKg: number;
+  expectedYieldMaundsPerAcre?: number;
+  targetTotalYieldKg?: number;
   actualTotalYieldKg?: number;
-  ndviScore: number; // 0.0 - 1.0 satellite vegetation index
-  soilMoisturePct: number;
-  temperatureCelsius: number;
-  riskAlertLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'NONE';
-  lastInspectionDate: string;
+  actualYieldMaundsTotal?: number | null;
+  ndviScore?: number; // 0.0 - 1.0 satellite vegetation index
+  latestNdvi?: number;
+  soilMoisturePct?: number;
+  soilMoisturePercent?: number;
+  temperatureCelsius?: number;
+  riskAlertLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'NONE';
+  lastInspectionDate?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type ActivityType = 
@@ -148,48 +156,71 @@ export type ActivityType =
   | 'WEEDICIDE_SPRAY'
   | 'FIELD_VISIT_INSPECTION'
   | 'SOIL_TEST'
-  | 'NDVI_ASSESSMENT';
+  | 'NDVI_ASSESSMENT'
+  | 'SOWING'
+  | 'FIRST_IRRIGATION'
+  | 'UREA_APPLICATION'
+  | 'DAP_APPLICATION'
+  | 'HERBICIDE_SPRAY'
+  | 'FUNGICIDE_APPLICATION'
+  | 'SECOND_IRRIGATION'
+  | 'THIRD_IRRIGATION'
+  | 'ZINC_SULPHATE_SPRAY'
+  | 'HARVESTING'
+  | 'THRESHING';
 
 export interface FieldActivity {
   id: string;
+  activityCode?: string;
   cropCycleId: string;
   farmerId: string;
   farmerName: string;
   fieldParcelId: string;
+  fieldParcelCode?: string;
   activityType: ActivityType;
+  targetStage?: string;
   scheduledDate: string;
-  executedDate?: string;
-  status: 'COMPLETED' | 'PENDING' | 'OVERDUE' | 'CANCELLED';
+  executedDate?: string | null;
+  status: 'COMPLETED' | 'PENDING' | 'OVERDUE' | 'CANCELLED' | 'SCHEDULED';
   dosageOrVolume?: string; // e.g. "1 Bag (50kg) Urea"
-  cost: number;
+  dosageOrQuantity?: string;
+  prescribedInstructions?: string;
+  cost?: number;
   loggedByRole: UserRole;
-  loggedByName: string;
+  loggedByName?: string;
   notes?: string;
   photoUrl?: string;
-  recommendationAdherence: boolean;
+  recommendationAdherence?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface HarvestRecord {
   id: string;
-  harvestCode: string; // "HRV-2026-088"
+  harvestCode?: string; // "HRV-2026-088"
   cropCycleId: string;
   farmerId: string;
   farmerName: string;
-  farmerCode: string;
+  farmerCode?: string;
   fieldParcelId: string;
   harvestDate: string;
   harvestMethod: 'MANUAL_COMBINE' | 'MECHANICAL_HARVESTER' | 'REAPER';
-  totalAcreageHarvested: number;
-  totalBagsCollected: number;
+  totalAcreageHarvested?: number;
+  acreageHarvested?: number;
+  totalBagsCollected?: number;
   totalWeightMaunds: number; // 1 Maund = 40 kg
   totalWeightKg: number;
-  yieldPerAcreMaunds: number;
+  yieldPerAcreMaunds?: number;
+  averageYieldMaundsPerAcre?: number;
   grainMoisturePct: number; // target < 12%
   grainQualityGrade: 'GRADE_A_PREMIUM' | 'GRADE_B_STANDARD' | 'GRADE_C_FEED' | 'REJECTED';
-  dockagePercentage: number;
+  dockagePercentage?: number;
   procurementCenterAssigned: string;
-  officerVerified: boolean;
+  storageSiloId?: string;
+  officerVerified?: boolean;
   status: 'PENDING_DELIVERY' | 'DELIVERED_TO_MILL' | 'INSPECTED' | 'STORED_IN_SILO';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface MillingBatch {

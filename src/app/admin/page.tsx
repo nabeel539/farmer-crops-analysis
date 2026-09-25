@@ -55,6 +55,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { addFarmer } from '@/store/slices/farmersSlice';
 import { addActivity } from '@/store/slices/activitiesSlice';
 import { DynamicFieldMap } from '@/components/map/DynamicFieldMap';
@@ -117,7 +118,7 @@ export default function AdminDashboardPage() {
   const totalFarmers = farmers.length;
   const totalWheatAcreage = farmers.reduce((sum, f) => sum + (f.wheatAcreage || 0), 0);
   const totalSeedBagsDistributed = seedDistributions.reduce((sum, d) => sum + (d.quantityBags || 0), 0);
-  const totalYieldForecastMaunds = cropCycles.reduce((sum, c) => sum + (c.expectedYieldMaundsPerAcre * c.allocatedAcres), 0);
+  const totalYieldForecastMaunds = cropCycles.reduce((sum, c) => sum + ((c.expectedYieldMaundsPerAcre || 0) * c.allocatedAcres), 0);
 
   // Chart 1: Stage Distribution Data
   const stageCounts: Record<string, number> = {};
@@ -148,8 +149,12 @@ export default function AdminDashboardPage() {
 
   const handleQuickAddFarmer = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFarmerName || !newFarmerMobile) {
-      toast.error('Please enter farmer name and mobile number');
+    if (!newFarmerName || newFarmerName.trim().length === 0) {
+      toast.error('Mandatory field required: Farmer full name is required');
+      return;
+    }
+    if (!newFarmerMobile || newFarmerMobile.trim().length === 0) {
+      toast.error('Mandatory field required: 10-digit mobile number is required');
       return;
     }
     const id = `FARM-0${farmers.length + 1}`;
@@ -178,6 +183,14 @@ export default function AdminDashboardPage() {
 
   const handleQuickAddActivity = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!actFarmerId) {
+      toast.error('Mandatory field required: Please select a registered farmer');
+      return;
+    }
+    if (!actType) {
+      toast.error('Mandatory field required: Agronomic activity type is required');
+      return;
+    }
     const selFarmer = farmers.find(f => f.id === actFarmerId) || farmers[0];
     const newActId = `ACT-0${activities.length + 1}`;
     dispatch(addActivity({
@@ -321,24 +334,18 @@ export default function AdminDashboardPage() {
             ) : (
               <form onSubmit={handleQuickAddActivity} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Select Farmer</Label>
-                  <Select
+                  <Label className="text-xs font-semibold">Select Farmer</Label>
+                  <SearchableSelect
+                    options={farmers.map((f) => ({
+                      value: f.id,
+                      label: f.fullName,
+                      subLabel: `${f.village} (${f.district})`,
+                    }))}
                     value={actFarmerId}
-                    onValueChange={(v) => {
-                      if (v !== null) setActFarmerId(v);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {farmers.map((f) => (
-                        <SelectItem key={f.id} value={f.id}>
-                          {f.fullName} ({f.village}, {f.district})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(val) => setActFarmerId(val)}
+                    placeholder="Select Farmer..."
+                    searchPlaceholder="Search farmer name, village..."
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -462,24 +469,21 @@ export default function AdminDashboardPage() {
                 <Users className="h-3.5 w-3.5 text-primary" />
                 <span className="hidden sm:inline">Farmer:</span>
               </div>
-              <Select value={selectedFarmerId} onValueChange={(v) => v && handleFarmerSelect(v)}>
-                <SelectTrigger className="h-8 text-xs bg-background font-semibold border-border/80 min-w-[220px] sm:min-w-[260px] shadow-2xs">
-                  <SelectValue placeholder="Select Farmer" />
-                </SelectTrigger>
-                <SelectContent className="min-w-[300px] sm:min-w-[340px] max-h-80 shadow-2xl border-border/80">
-                  <SelectItem value="ALL" className="py-2.5 font-bold text-primary cursor-pointer border-b border-border/50">
-                    🌍 All Farmers ({farmers.length} Enrolled Plots)
-                  </SelectItem>
-                  {farmers.map((f) => (
-                    <SelectItem key={f.id} value={f.id} className="py-2 cursor-pointer">
-                      <div className="flex flex-col text-left">
-                        <span className="font-semibold text-foreground text-xs">{f.fullName}</span>
-                        <span className="text-[11px] text-muted-foreground">{f.village} &bull; {f.wheatAcreage || f.totalLandAcres} Acres</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={[
+                  { value: 'ALL', label: `🌍 All Farmers (${farmers.length} Enrolled Plots)` },
+                  ...farmers.map((f) => ({
+                    value: f.id,
+                    label: f.fullName,
+                    subLabel: `${f.village} • ${f.wheatAcreage || f.totalLandAcres} Acres`,
+                  })),
+                ]}
+                value={selectedFarmerId}
+                onChange={(v) => v && handleFarmerSelect(v)}
+                placeholder="Select Farmer..."
+                searchPlaceholder="Search farmer by name, village..."
+                className="h-8 text-xs min-w-[240px] sm:min-w-[280px] bg-background font-semibold"
+              />
             </div>
 
             {/* Layer Selector */}
@@ -588,7 +592,7 @@ export default function AdminDashboardPage() {
                       <div className="flex justify-between text-muted-foreground">
                         <span>Yield Forecast</span>
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          {selectedCycle.expectedYieldMaundsPerAcre} Maunds/Ac ({(selectedCycle.expectedYieldMaundsPerAcre * selectedCycle.allocatedAcres * 0.04).toFixed(1)} Tons)
+                          {selectedCycle.expectedYieldMaundsPerAcre || 0} Maunds/Ac ({((selectedCycle.expectedYieldMaundsPerAcre || 0) * selectedCycle.allocatedAcres * 0.04).toFixed(1)} Tons)
                         </span>
                       </div>
                       <div className="flex justify-between text-muted-foreground">

@@ -5,6 +5,9 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v
 
 export const baseApi = createApi({
   reducerPath: 'api',
+  refetchOnFocus: false,
+  refetchOnReconnect: false,
+  refetchOnMountOrArgChange: false,
   baseQuery: fetchBaseQuery({
     baseUrl: BASE_URL,
     prepareHeaders: (headers, { getState }) => {
@@ -25,6 +28,11 @@ export const baseApi = createApi({
     'Farmer',
     'Field',
     'SeedAllocation',
+    'CropCycle',
+    'Activity',
+    'OfficerVisit',
+    'HarvestRecord',
+    'Report',
   ],
   endpoints: () => ({}),
 });

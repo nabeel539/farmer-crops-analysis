@@ -1,9 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import {
   useGetFarmersQuery,
   useCreateFarmerMutation,
@@ -14,7 +11,14 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { SearchFilterBar } from '@/components/shared/SearchFilterBar';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import DataTablePagination, { ViewMode } from '@/components/shared/DataTablePagination';
+import AddressAutocomplete from '@/components/shared/AddressAutocomplete';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -23,16 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -52,67 +46,89 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   Plus,
+  Search,
   MoreVertical,
   Eye,
   Edit2,
-  RefreshCw,
+  Trash2,
   Download,
+  Users,
   Phone,
   MapPin,
+  RefreshCw,
+  FileSpreadsheet,
   ShieldCheck,
-  AlertCircle,
-  Users,
+  KeyRound,
+  Copy,
+  Check,
+  ExternalLink,
+  UserCheck,
 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { toast } from 'sonner';
 
-// Zod Schema for Farmer form validation per FE Best Practices
-const farmerFormSchema = z.object({
+const farmerSchema = z.object({
   name: z.string().min(2, 'Farmer name must be at least 2 characters'),
-  mobile_number: z.string().regex(/^[0-9+\-\s]{10,15}$/, 'Enter a valid 10-digit mobile number'),
-  village: z.string().min(1, 'Village is required'),
-  block: z.string().optional().or(z.literal('')),
-  district: z.string().min(1, 'District is required'),
-  state: z.string().min(1, 'State is required'),
+  mobile_number: z.string().min(10, 'Mobile number must be at least 10 digits'),
+  village: z.string().min(2, 'Village name is mandatory'),
+  block: z.string().optional(),
+  district: z.string().min(2, 'District is mandatory'),
+  state: z.string().min(2, 'State is mandatory'),
   address: z.string().optional().or(z.literal('')),
   status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING_VERIFICATION']),
 });
 
-type FarmerFormValues = z.infer<typeof farmerFormSchema>;
+type FarmerFormValues = z.infer<typeof farmerSchema>;
+
+const DISTRICT_OPTIONS = [
+  { value: 'Ludhiana', label: 'Ludhiana', subLabel: 'Punjab' },
+  { value: 'Karnal', label: 'Karnal', subLabel: 'Haryana' },
+  { value: 'Patiala', label: 'Patiala', subLabel: 'Punjab' },
+  { value: 'Bathinda', label: 'Bathinda', subLabel: 'Punjab' },
+  { value: 'Meerut', label: 'Meerut', subLabel: 'Uttar Pradesh' },
+  { value: 'Indore', label: 'Indore', subLabel: 'Madhya Pradesh' },
+  { value: 'Ambala', label: 'Ambala', subLabel: 'Haryana' },
+  { value: 'Sirsa', label: 'Sirsa', subLabel: 'Haryana' },
+  { value: 'Sangrur', label: 'Sangrur', subLabel: 'Punjab' },
+];
 
 export default function FarmersPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
-  const [districtFilter, setDistrictFilter] = useState('ALL');
-
-  // Modal & Sheet states
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
-  const [selectedFarmer, setSelectedFarmer] = useState<ApiFarmer | null>(null);
-  const [editingFarmer, setEditingFarmer] = useState<ApiFarmer | null>(null);
-
-  // RTK Query API Hooks
-  const {
-    data: farmers = [],
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useGetFarmersQuery({
-    search: searchQuery || undefined,
-    district: districtFilter !== 'ALL' ? districtFilter : undefined,
-    status: statusFilter !== 'ALL' ? statusFilter : undefined,
+  const { data: rawFarmers = [], isLoading, refetch } = useGetFarmersQuery(undefined, {
+    refetchOnMountOrArgChange: false,
   });
-
   const [createFarmer, { isLoading: isCreating }] = useCreateFarmerMutation();
   const [updateFarmer, { isLoading: isUpdating }] = useUpdateFarmerMutation();
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [districtFilter, setDistrictFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  // Pagination & View Mode State
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Modals & Detail Sheet State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingFarmer, setEditingFarmer] = useState<ApiFarmer | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
+  const [selectedFarmer, setSelectedFarmer] = useState<ApiFarmer | null>(null);
+
+  // Credentials Generated Modal
+  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false);
+  const [generatedCreds, setGeneratedCreds] = useState<{
+    userId: string;
+    pass: string;
+    name: string;
+  } | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const {
     register,
@@ -122,21 +138,44 @@ export default function FarmersPage() {
     watch,
     formState: { errors },
   } = useForm<FarmerFormValues>({
-    resolver: zodResolver(farmerFormSchema),
+    resolver: zodResolver(farmerSchema),
     defaultValues: {
       name: '',
       mobile_number: '',
       village: '',
       block: '',
-      district: 'Ludhiana',
-      state: 'Punjab',
+      district: 'Karnal',
+      state: 'Haryana',
       address: '',
       status: 'ACTIVE',
     },
   });
 
-  const selectedStatus = watch('status');
   const selectedDistrict = watch('district');
+  const selectedStatus = watch('status');
+
+  // Filter Farmers
+  const filteredFarmers = rawFarmers.filter((farmer) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      farmer.name.toLowerCase().includes(q) ||
+      farmer.mobile_number.includes(q) ||
+      farmer.village.toLowerCase().includes(q) ||
+      farmer.district.toLowerCase().includes(q);
+
+    const matchesDistrict = districtFilter === 'ALL' || farmer.district === districtFilter;
+    const matchesStatus = statusFilter === 'ALL' || farmer.status === statusFilter;
+
+    return matchesSearch && matchesDistrict && matchesStatus;
+  });
+
+  // Paginated Slicing
+  const totalItems = filteredFarmers.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const paginatedFarmers = filteredFarmers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const handleOpenAddModal = () => {
     setEditingFarmer(null);
@@ -145,8 +184,8 @@ export default function FarmersPage() {
       mobile_number: '',
       village: '',
       block: '',
-      district: 'Ludhiana',
-      state: 'Punjab',
+      district: 'Karnal',
+      state: 'Haryana',
       address: '',
       status: 'ACTIVE',
     });
@@ -168,6 +207,17 @@ export default function FarmersPage() {
     setIsModalOpen(true);
   };
 
+  const onInvalid = (errors: any) => {
+    const errorMessages = Object.values(errors)
+      .map((err: any) => err?.message)
+      .filter(Boolean);
+    if (errorMessages.length > 0) {
+      toast.error(`Mandatory field required: ${errorMessages[0]}`);
+    } else {
+      toast.error('Please fill all mandatory fields marked with *');
+    }
+  };
+
   const onSubmit = async (values: FarmerFormValues) => {
     try {
       if (editingFarmer) {
@@ -177,8 +227,29 @@ export default function FarmersPage() {
         }).unwrap();
         toast.success(`Farmer "${values.name}" profile updated successfully!`);
       } else {
-        await createFarmer(values).unwrap();
-        toast.success(`Farmer "${values.name}" enrolled successfully!`);
+        const res = await createFarmer(values).unwrap();
+        
+        // Auto-generate Farmer Login Credentials
+        const tempPassword = `Kisan@${Math.floor(1000 + Math.random() * 9000)}`;
+        const credRecord = {
+          userId: values.mobile_number,
+          pass: tempPassword,
+          name: values.name,
+          village: values.village,
+        };
+
+        // Persist to local farmer credentials for login authentication
+        try {
+          const existing = JSON.parse(localStorage.getItem('registered_farmer_credentials') || '[]');
+          existing.push(credRecord);
+          localStorage.setItem('registered_farmer_credentials', JSON.stringify(existing));
+        } catch (e) {
+          console.error(e);
+        }
+
+        setGeneratedCreds(credRecord);
+        setCredentialsModalOpen(true);
+        toast.success(`Farmer "${values.name}" enrolled successfully with login credentials!`);
       }
       setIsModalOpen(false);
       reset();
@@ -187,14 +258,20 @@ export default function FarmersPage() {
     }
   };
 
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
   const handleExportCSV = () => {
-    if (farmers.length === 0) {
+    if (rawFarmers.length === 0) {
       toast.error('No farmer records to export');
       return;
     }
-    const headers = ['Farmer ID', 'Name', 'Mobile', 'Village', 'Block', 'District', 'State', 'Status', 'Registered Date'];
-    const rows = farmers.map((f) => [
-      f.id,
+    const headers = ['Farmer Name', 'Mobile', 'Village', 'Block', 'District', 'State', 'Status', 'Registered Date'];
+    const rows = rawFarmers.map((f) => [
       f.name,
       f.mobile_number,
       f.village,
@@ -236,32 +313,33 @@ export default function FarmersPage() {
       {/* Search and Filters */}
       <SearchFilterBar
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Search by farmer name, mobile, village, or ID..."
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          setCurrentPage(1);
+        }}
+        searchPlaceholder="Search by farmer name, mobile, village..."
         filters={[
           {
             id: 'district',
             placeholder: 'All Districts',
             value: districtFilter,
-            onChange: (v) => setDistrictFilter(v),
+            onChange: (v) => {
+              setDistrictFilter(v);
+              setCurrentPage(1);
+            },
             options: [
               { label: 'All Districts', value: 'ALL' },
-              { label: 'Ludhiana', value: 'Ludhiana' },
-              { label: 'Karnal', value: 'Karnal' },
-              { label: 'Patiala', value: 'Patiala' },
-              { label: 'Bathinda', value: 'Bathinda' },
-              { label: 'Meerut', value: 'Meerut' },
-              { label: 'Indore', value: 'Indore' },
-              { label: 'Ambala', value: 'Ambala' },
-              { label: 'Sirsa', value: 'Sirsa' },
-              { label: 'Sangrur', value: 'Sangrur' },
+              ...DISTRICT_OPTIONS.map((d) => ({ label: d.label, value: d.value })),
             ],
           },
           {
             id: 'status',
             placeholder: 'All Statuses',
             value: statusFilter,
-            onChange: (v) => setStatusFilter(v),
+            onChange: (v) => {
+              setStatusFilter(v);
+              setCurrentPage(1);
+            },
             options: [
               { label: 'All Statuses', value: 'ALL' },
               { label: 'Active', value: 'ACTIVE' },
@@ -274,10 +352,11 @@ export default function FarmersPage() {
           setSearchQuery('');
           setDistrictFilter('ALL');
           setStatusFilter('ALL');
+          setCurrentPage(1);
         }}
       />
 
-      {/* Main Content Area: Loading / Error / Empty / Table */}
+      {/* Main Content Area */}
       {isLoading ? (
         <Card className="border border-border/80 shadow-2xs">
           <CardContent className="p-8 space-y-4">
@@ -292,23 +371,7 @@ export default function FarmersPage() {
             </div>
           </CardContent>
         </Card>
-      ) : isError ? (
-        <Card className="border border-destructive/30 bg-destructive/5 shadow-2xs">
-          <CardContent className="p-8 text-center space-y-3">
-            <div className="inline-flex p-3 rounded-full bg-destructive/10 text-destructive mb-1">
-              <AlertCircle className="h-6 w-6" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground">Failed to load farmers registry</h3>
-            <p className="text-xs text-muted-foreground max-w-md mx-auto">
-              {(error as any)?.data?.detail || 'Unable to connect to backend server. Please verify database connection.'}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-2 text-xs">
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-      ) : farmers.length === 0 ? (
+      ) : filteredFarmers.length === 0 ? (
         <EmptyState
           icon={Users}
           title={searchQuery || statusFilter !== 'ALL' || districtFilter !== 'ALL' ? 'No matching farmers found' : 'No farmers registered yet'}
@@ -325,108 +388,257 @@ export default function FarmersPage() {
         />
       ) : (
         <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent bg-muted/40 text-xs">
-                <TableHead className="font-bold">Farmer Name</TableHead>
-                <TableHead className="font-bold">Contact Number</TableHead>
-                <TableHead className="font-bold">Location (Village / District)</TableHead>
-                <TableHead className="font-bold">Registration Date</TableHead>
-                <TableHead className="font-bold">Status</TableHead>
-                <TableHead className="w-12 text-center">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {farmers.map((farmer) => (
-                <TableRow key={farmer.id} className="hover:bg-muted/30 text-xs">
-                  <TableCell>
-                    <div className="font-semibold text-foreground">{farmer.name}</div>
-                    <div className="text-[11px] text-muted-foreground font-mono">
-                      ID: {farmer.id.slice(0, 8)}...
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                      <Phone className="h-3 w-3 text-primary" />
-                      <span className="font-mono text-foreground font-medium">{farmer.mobile_number}</span>
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <div className="font-medium text-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      {farmer.village}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground pl-4">
-                      {farmer.block ? `${farmer.block}, ` : ''}{farmer.district}, {farmer.state}
-                    </div>
-                  </TableCell>
-
-                  <TableCell>
-                    <span className="font-mono text-[11px] text-muted-foreground">{farmer.registration_date}</span>
-                  </TableCell>
-
-                  <TableCell>
-                    <StatusBadge status={farmer.status} />
-                  </TableCell>
-
-                  <TableCell className="text-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger render={
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      } />
-                      <DropdownMenuContent align="end" className="w-44 text-xs">
-                        <DropdownMenuLabel>Farmer Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedFarmer(farmer);
-                            setDetailSheetOpen(true);
-                          }}
-                          className="gap-2 cursor-pointer"
-                        >
-                          <Eye className="h-3.5 w-3.5 text-blue-500" />
-                          View Dossier
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleOpenEditModal(farmer)}
-                          className="gap-2 cursor-pointer"
-                        >
-                          <Edit2 className="h-3.5 w-3.5 text-amber-500" />
-                          Edit Profile
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          {viewMode === 'table' ? (
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent bg-muted/40 text-xs">
+                  <TableHead className="font-bold">Farmer Name</TableHead>
+                  <TableHead className="font-bold">Contact Number</TableHead>
+                  <TableHead className="font-bold">Location (Village / District)</TableHead>
+                  <TableHead className="font-bold">Registration Date</TableHead>
+                  <TableHead className="font-bold">Status</TableHead>
+                  <TableHead className="w-12 text-center">Actions</TableHead>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedFarmers.map((farmer) => (
+                  <TableRow key={farmer.id} className="hover:bg-muted/30 transition-colors text-xs">
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0">
+                          {farmer.name.charAt(0)}
+                        </div>
+                        <div>
+                          <span className="font-bold text-foreground block">{farmer.name}</span>
+                          <span className="text-[11px] text-muted-foreground block">
+                            {farmer.village} &bull; {farmer.district}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 font-mono text-xs">
+                        <Phone className="h-3 w-3 text-muted-foreground" />
+                        <span>{farmer.mobile_number}</span>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span>
+                          {farmer.village}, {farmer.district} ({farmer.state})
+                        </span>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {farmer.registration_date}
+                      </span>
+                    </TableCell>
+
+                    <TableCell>
+                      <StatusBadge status={farmer.status} />
+                    </TableCell>
+
+                    <TableCell className="text-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="h-7 w-7 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer">
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="text-xs">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedFarmer(farmer);
+                              setDetailSheetOpen(true);
+                            }}
+                            className="gap-2 cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5 text-primary" />
+                            View Full Dossier
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleOpenEditModal(farmer)}
+                            className="gap-2 cursor-pointer"
+                          >
+                            <Edit2 className="h-3.5 w-3.5 text-amber-600" />
+                            Edit Profile
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            /* Card Grid View */
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              {paginatedFarmers.map((farmer) => (
+                <Card key={farmer.id} className="border hover:border-primary/40 transition-all shadow-xs">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-bold flex items-center justify-center text-sm shrink-0">
+                          {farmer.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">{farmer.name}</h4>
+                          <p className="text-[11px] text-muted-foreground">{farmer.village}, {farmer.district}</p>
+                        </div>
+                      </div>
+                      <StatusBadge status={farmer.status} />
+                    </div>
+
+                    <div className="space-y-1 pt-1 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-primary" />
+                        <span className="font-mono">{farmer.mobile_number}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>State: {farmer.state}</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t flex items-center justify-between">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedFarmer(farmer);
+                          setDetailSheetOpen(true);
+                        }}
+                        className="h-7 text-xs gap-1"
+                      >
+                        <Eye className="h-3 w-3" />
+                        Dossier
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenEditModal(farmer)}
+                        className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700"
+                      >
+                        <Edit2 className="h-3 w-3" />
+                        Edit
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          )}
+
+          {/* DataTable Pagination */}
+          <DataTablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
         </div>
       )}
 
-      {/* Add / Edit Farmer Dialog Modal */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">
-              {editingFarmer ? 'Edit Farmer Profile' : 'Enroll New Wheat Farmer'}
-            </DialogTitle>
+      {/* Auto-Generated Login Credentials Modal */}
+      <Dialog open={credentialsModalOpen} onOpenChange={setCredentialsModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 mx-auto flex items-center justify-center shadow-xs border border-emerald-500/30">
+              <KeyRound className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-lg font-bold">Farmer Login Account Generated</DialogTitle>
             <DialogDescription className="text-xs">
-              Complete farmer registry form with contact details and regional mapping.
+              Hand over these secure login credentials to <strong>{generatedCreds?.name}</strong> to access their mobile Kisan Passbook.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+          {generatedCreds && (
+            <div className="space-y-3.5 py-2">
+              <div className="p-3.5 bg-muted/60 rounded-xl border border-border/70 space-y-3 text-xs">
+                <div>
+                  <span className="text-[11px] text-muted-foreground block mb-1">Farmer User ID / Login Mobile:</span>
+                  <div className="flex items-center justify-between bg-background p-2 rounded-lg border font-mono font-bold text-foreground">
+                    <span>{generatedCreds.userId}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(generatedCreds.userId, 'user')}
+                      className="h-6 px-2 text-xs"
+                    >
+                      {copiedKey === 'user' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[11px] text-muted-foreground block mb-1">Auto-Generated Temporary Password:</span>
+                  <div className="flex items-center justify-between bg-background p-2 rounded-lg border font-mono font-bold text-emerald-600">
+                    <span>{generatedCreds.pass}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(generatedCreds.pass, 'pass')}
+                      className="h-6 px-2 text-xs"
+                    >
+                      {copiedKey === 'pass' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-700 dark:text-emerald-400 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5">
+                  <UserCheck className="h-4 w-4" />
+                  Direct Mobile Login Available
+                </p>
+                <p className="text-[11px] leading-relaxed">
+                  The farmer can now visit <strong>http://localhost:3000/login</strong>, enter this User ID and password, and instantly access their digital slip book & farm planner.
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              className="w-full font-semibold"
+              onClick={() => setCredentialsModalOpen(false)}
+            >
+              Done & Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add / Edit Farmer Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold">
+              {editingFarmer ? `Edit Farmer: ${editingFarmer.name}` : 'Enroll New Wheat Farmer'}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Fill in farmer KYC and residential location.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3.5 pt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Farmer Full Name *</Label>
                 <Input
-                  placeholder="e.g., Balwinder Singh"
+                  placeholder="e.g., Ramesh Patel"
                   {...register('name')}
+                  className="text-xs"
                 />
                 {errors.name && <p className="text-[10px] text-destructive">{errors.name.message}</p>}
               </div>
@@ -434,28 +646,50 @@ export default function FarmersPage() {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Mobile Number *</Label>
                 <Input
-                  placeholder="e.g., 9876540001"
+                  placeholder="e.g., 9876543210"
                   {...register('mobile_number')}
+                  className="text-xs"
                 />
                 {errors.mobile_number && <p className="text-[10px] text-destructive">{errors.mobile_number.message}</p>}
               </div>
+            </div>
+
+            {/* Places Geocoding Search */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center justify-between">
+                <span>Auto-Locate Village / District (Places API)</span>
+                <span className="text-[10px] text-emerald-600 font-normal">Auto-Fills Form</span>
+              </Label>
+              <AddressAutocomplete
+                value=""
+                onChange={() => {}}
+                onSelectPlace={(place) => {
+                  if (place.village) setValue('village', place.village);
+                  if (place.district) setValue('district', place.district);
+                  if (place.state) setValue('state', place.state);
+                  if (place.address) setValue('address', place.address);
+                }}
+                placeholder="Type village, town, or city to auto-fill..."
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Village *</Label>
                 <Input
-                  placeholder="e.g., Rampur"
+                  placeholder="e.g., Rampur / Samrala"
                   {...register('village')}
+                  className="text-xs"
                 />
                 {errors.village && <p className="text-[10px] text-destructive">{errors.village.message}</p>}
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Block / Tehsil</Label>
+                <Label className="text-xs">Tehsil / Block</Label>
                 <Input
-                  placeholder="e.g., Samrala"
+                  placeholder="e.g., Samrala Block"
                   {...register('block')}
+                  className="text-xs"
                 />
               </div>
             </div>
@@ -463,65 +697,34 @@ export default function FarmersPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">District *</Label>
-                <Select
-                  value={selectedDistrict || 'Ludhiana'}
-                  onValueChange={(v) => {
-                    if (v) setValue('district', v);
-                  }}
-                >
-                  <SelectTrigger className="w-full text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ludhiana">Ludhiana (Punjab)</SelectItem>
-                    <SelectItem value="Karnal">Karnal (Haryana)</SelectItem>
-                    <SelectItem value="Patiala">Patiala (Punjab)</SelectItem>
-                    <SelectItem value="Bathinda">Bathinda (Punjab)</SelectItem>
-                    <SelectItem value="Meerut">Meerut (UP)</SelectItem>
-                    <SelectItem value="Indore">Indore (MP)</SelectItem>
-                    <SelectItem value="Ambala">Ambala (Haryana)</SelectItem>
-                    <SelectItem value="Sirsa">Sirsa (Haryana)</SelectItem>
-                    <SelectItem value="Sangrur">Sangrur (Punjab)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={DISTRICT_OPTIONS}
+                  value={selectedDistrict}
+                  onChange={(val) => setValue('district', val)}
+                  placeholder="Select District"
+                  searchPlaceholder="Search district..."
+                />
                 {errors.district && <p className="text-[10px] text-destructive">{errors.district.message}</p>}
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">State *</Label>
                 <Input
-                  placeholder="e.g., Punjab"
+                  placeholder="e.g., Punjab / Haryana"
                   {...register('state')}
+                  className="text-xs"
                 />
                 {errors.state && <p className="text-[10px] text-destructive">{errors.state.message}</p>}
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">Physical Address</Label>
+              <Label className="text-xs">Physical Address / Landmark</Label>
               <Input
-                placeholder="e.g., House No. 42, Near Gurdwara Sahib"
+                placeholder="e.g., Near Primary School, Main Road"
                 {...register('address')}
+                className="text-xs"
               />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Enrollment Status</Label>
-              <Select
-                value={selectedStatus || 'ACTIVE'}
-                onValueChange={(v) => {
-                  if (v) setValue('status', v as 'ACTIVE' | 'INACTIVE' | 'PENDING_VERIFICATION');
-                }}
-              >
-                <SelectTrigger className="w-full text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ACTIVE">ACTIVE (Approved & Verified)</SelectItem>
-                  <SelectItem value="PENDING_VERIFICATION">PENDING_VERIFICATION</SelectItem>
-                  <SelectItem value="INACTIVE">INACTIVE</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <DialogFooter className="pt-2">
@@ -532,12 +735,12 @@ export default function FarmersPage() {
                 {isCreating || isUpdating ? (
                   <>
                     <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    Saving...
+                    Enrolling...
                   </>
                 ) : editingFarmer ? (
-                  'Save Changes'
+                  'Save Profile Changes'
                 ) : (
-                  'Enroll Farmer'
+                  'Enroll Farmer & Generate Login'
                 )}
               </Button>
             </DialogFooter>
@@ -552,8 +755,8 @@ export default function FarmersPage() {
             <>
               <SheetHeader className="space-y-2 pb-4 border-b">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="font-mono text-xs">
-                    ID: {selectedFarmer.id.slice(0, 8)}
+                  <Badge variant="outline" className="text-xs font-semibold text-primary border-primary/30">
+                    Verified Wheat Grower
                   </Badge>
                   <StatusBadge status={selectedFarmer.status} />
                 </div>
@@ -572,7 +775,7 @@ export default function FarmersPage() {
                 <div className="grid grid-cols-2 gap-3 pt-2">
                   <div>
                     <span className="text-muted-foreground block text-[11px]">Mobile Number:</span>
-                    <span className="font-semibold">{selectedFarmer.mobile_number}</span>
+                    <span className="font-semibold font-mono">{selectedFarmer.mobile_number}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-[11px]">District:</span>

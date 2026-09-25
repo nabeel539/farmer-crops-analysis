@@ -17,6 +17,11 @@ class BadRequestException(HTTPException):
         super().__init__(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
 
+class ValidationException(BadRequestException):
+    """Validation failure exception."""
+    pass
+
+
 class UnauthorizedException(HTTPException):
     """Authentication failure."""
 

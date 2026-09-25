@@ -71,6 +71,19 @@ export default function FieldOfficerPage() {
 
   const handleQuickLogActivity = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedFarmerId) {
+      toast.error('Mandatory field required: Please select an enrolled farmer');
+      return;
+    }
+    if (!actType) {
+      toast.error('Mandatory field required: Please select an operation type');
+      return;
+    }
+    if (!dosage || dosage.trim().length === 0) {
+      toast.error('Mandatory field required: Dosage / inputs used is required');
+      return;
+    }
+
     const selFarmer = farmers.find(f => f.id === selectedFarmerId) || farmers[0];
     const newActId = `ACT-0${activities.length + 1}`;
     dispatch(addActivity({
@@ -96,6 +109,10 @@ export default function FieldOfficerPage() {
 
   const handleVerifyParcelGPS = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!verifyingParcelId) {
+      toast.error('Mandatory field required: Please select a land parcel to verify');
+      return;
+    }
     const selParcel = parcels.find(p => p.id === verifyingParcelId) || parcels[0];
     dispatch(updateParcel({
       ...selParcel,
@@ -256,7 +273,9 @@ export default function FieldOfficerPage() {
                   <Label className="text-xs font-semibold">Select Enrolled Farmer</Label>
                   <Select value={selectedFarmerId} onValueChange={(v) => { if (v !== null) setSelectedFarmerId(v); }}>
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select Farmer">
+                        {farmers.find((f) => f.id === selectedFarmerId) ? `${farmers.find((f) => f.id === selectedFarmerId)?.fullName} • ${farmers.find((f) => f.id === selectedFarmerId)?.village}` : undefined}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {farmers.map((f) => (
@@ -332,7 +351,9 @@ export default function FieldOfficerPage() {
                   <Label className="text-xs font-semibold">Select Land Parcel</Label>
                   <Select value={verifyingParcelId} onValueChange={(v) => { if (v !== null) setVerifyingParcelId(v); }}>
                     <SelectTrigger className="w-full">
-                      <SelectValue />
+                      <SelectValue placeholder="Select Land Parcel">
+                        {parcels.find((p) => p.id === verifyingParcelId) ? `${parcels.find((p) => p.id === verifyingParcelId)?.parcelCode} • ${parcels.find((p) => p.id === verifyingParcelId)?.farmerName} (${parcels.find((p) => p.id === verifyingParcelId)?.totalAcreage} Ac)` : undefined}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {parcels.map((p) => (

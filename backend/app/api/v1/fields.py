@@ -113,6 +113,22 @@ def update_field(
     return field
 
 
+@router.delete("/{field_id}", status_code=204)
+def delete_field(
+    field_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_officer),
+) -> None:
+    """Delete a field parcel record completely. Admin or Field Officer only."""
+    field = db.query(Field).filter(Field.id == field_id).first()
+    if not field:
+        raise NotFoundException("Field not found")
+
+    db.delete(field)
+    db.commit()
+    return None
+
+
 @router.delete("/{field_id}/polygon", response_model=FieldResponse)
 def delete_polygon(
     field_id: str,

@@ -157,6 +157,19 @@ export default function FarmerPortalPage() {
 
   const handleCreateFarmerActivity = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!actType) {
+      toast.error('Mandatory field required: Activity type is required');
+      return;
+    }
+    if (!actDosage || actDosage.trim().length === 0) {
+      toast.error('Mandatory field required: Dosage / inputs description is required');
+      return;
+    }
+    if (!actDate) {
+      toast.error('Mandatory field required: Activity execution date is required');
+      return;
+    }
+
     const newActId = `ACT-FARM-${Date.now().toString().slice(-4)}`;
     const parcel = parcels.find(p => p.id === actParcelId) || farmerParcels[0];
     
@@ -186,8 +199,8 @@ export default function FarmerPortalPage() {
 
   const handleSendCropDoctorQuery = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!problemQuery) {
-      toast.error('Please enter a query or description of the problem.');
+    if (!problemQuery || problemQuery.trim().length === 0) {
+      toast.error('Mandatory field required: Please describe your crop problem or disease symptoms');
       return;
     }
     toast.success('Disease query & leaf photo sent to Field Officer Muhammad Asif (Response expected in 30 mins)');
@@ -1300,7 +1313,9 @@ export default function FarmerPortalPage() {
               <Label className="text-xs font-semibold">Select Field Plot / Khet *</Label>
               <Select value={actParcelId} onValueChange={(v) => v && setActParcelId(v)}>
                 <SelectTrigger className="w-full text-xs">
-                  <SelectValue />
+                  <SelectValue placeholder="Select Field Plot / Khet">
+                    {farmerParcels.find((p) => p.id === actParcelId) ? `${farmerParcels.find((p) => p.id === actParcelId)?.parcelCode} • ${farmerParcels.find((p) => p.id === actParcelId)?.titleDeedOrKhasraNo} (${farmerParcels.find((p) => p.id === actParcelId)?.totalAcreage} Acres)` : 'PRCL-001 • Khasra #412/1 (10.0 Acres)'}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {farmerParcels.length > 0 ? (

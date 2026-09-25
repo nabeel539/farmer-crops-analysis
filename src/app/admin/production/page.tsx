@@ -99,6 +99,19 @@ export default function ProductionPage() {
 
   const handleCreateBatch = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!inputWheatKg || Number(inputWheatKg) <= 0) {
+      toast.error('Mandatory field required: Input raw wheat quantity must be greater than 0');
+      return;
+    }
+    if (!siloId) {
+      toast.error('Mandatory field required: Please select a storage silo');
+      return;
+    }
+    if (!supervisor || supervisor.trim().length === 0) {
+      toast.error('Mandatory field required: Plant supervisor name is required');
+      return;
+    }
+
     const newBatch: MillingBatch = {
       id: `MIL-${String(batches.length + 1).padStart(3, '0')}`,
       batchNumber: `MIL-BATCH-2026-0${batches.length + 1}`,
@@ -342,7 +355,9 @@ export default function ProductionPage() {
                 <Label className="text-xs font-semibold">Destination Silo</Label>
                 <Select value={siloId} onValueChange={(v) => { if (v !== null) setSiloId(v); }}>
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue placeholder="Select Destination Silo">
+                      {siloId === 'SILO-FLOUR-02' ? 'SILO-FLOUR-02 (Raw Wheat)' : siloId === 'SILO-FLOUR-04' ? 'SILO-FLOUR-04 (Fine Atta)' : siloId === 'SILO-FLOUR-07' ? 'SILO-FLOUR-07 (Bran / Choker)' : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="SILO-FLOUR-02">SILO-FLOUR-02 (Raw Wheat)</SelectItem>

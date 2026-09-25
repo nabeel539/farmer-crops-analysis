@@ -84,6 +84,15 @@ export default function AlertsPage() {
 
   const handleCreateAlert = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!alertTitle || alertTitle.trim().length === 0) {
+      toast.error('Mandatory field required: Alert title is required');
+      return;
+    }
+    if (!alertDesc || alertDesc.trim().length === 0) {
+      toast.error('Mandatory field required: Alert description is required');
+      return;
+    }
+
     const newAlert: AgriAlert = {
       id: `ALT-00${alerts.length + 1}`,
       type: alertType,
@@ -107,6 +116,15 @@ export default function AlertsPage() {
 
   const handleCreateAdvisory = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!advTitle || advTitle.trim().length === 0) {
+      toast.error('Mandatory field required: Advisory title is required');
+      return;
+    }
+    if (!advDesc || advDesc.trim().length === 0) {
+      toast.error('Mandatory field required: Advisory description is required');
+      return;
+    }
+
     const newAdv: AdvisoryBulletin = {
       id: `ADV-00${advisories.length + 1}`,
       title: advTitle,

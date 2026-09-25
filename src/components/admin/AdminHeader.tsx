@@ -75,7 +75,7 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Overview</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <LayoutDashboard className="h-4 w-4 shrink-0 text-primary" />
                     <span>Dashboard</span>
                   </Link>
@@ -86,22 +86,22 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Seed & Land Base</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/farmers" className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/farmers' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/farmers" prefetch={false} className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/farmers' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <span className="flex items-center gap-2.5">
                       <Users className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                       <span>Farmers Enrolled</span>
                     </span>
                     <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-mono">12</Badge>
                   </Link>
-                  <Link href="/admin/seed-distribution" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/seed-distribution' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/seed-distribution" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/seed-distribution' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <Package className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                     <span>Seed Distribution</span>
                   </Link>
-                  <Link href="/admin/land-parcels" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/land-parcels' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/land-parcels" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/land-parcels' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <MapPin className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
                     <span>Land Parcels & GPS</span>
                   </Link>
-                  <Link href="/admin/map" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/map' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/map" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/map' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <Map className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
                     <span>GIS Field Map</span>
                   </Link>
@@ -112,11 +112,11 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Crop Operations</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/crop-cycles" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/crop-cycles' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/crop-cycles" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/crop-cycles' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <Sprout className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                     <span>Wheat Crop Cycles</span>
                   </Link>
-                  <Link href="/admin/activities" className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/activities' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/activities" prefetch={false} className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/activities' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <span className="flex items-center gap-2.5">
                       <Calendar className="h-4 w-4 shrink-0 text-cyan-600 dark:text-cyan-400" />
                       <span>Field Activities</span>
@@ -130,11 +130,11 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Harvest & Processing</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/harvest" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/harvest' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/harvest" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/harvest' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <Wheat className="h-4 w-4 shrink-0 text-amber-500" />
                     <span>Harvest Records</span>
                   </Link>
-                  <Link href="/admin/production" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/production' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/production" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/production' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <Factory className="h-4 w-4 shrink-0 text-purple-600 dark:text-purple-400" />
                     <span>Flour Milling & Silos</span>
                   </Link>
@@ -145,22 +145,22 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block mb-1">Intelligence</span>
                 <div className="space-y-0.5">
-                  <Link href="/admin/alerts" className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/alerts' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/alerts" prefetch={false} className={cn('flex items-center justify-between px-3 py-2 rounded-md transition-colors', pathname === '/admin/alerts' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <span className="flex items-center gap-2.5">
                       <Bell className="h-4 w-4 shrink-0 text-rose-500" />
                       <span>Agri Alerts</span>
                     </span>
                     <Badge variant="destructive" className="text-[10px] h-4 px-1.5 font-mono">4</Badge>
                   </Link>
-                  <Link href="/admin/analytics" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/analytics' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/analytics" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/analytics' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <TrendingUp className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-400" />
                     <span>Analytics & Yield</span>
                   </Link>
-                  <Link href="/admin/reports" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/reports' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/reports" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/reports' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <FileText className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
                     <span>Official Reports</span>
                   </Link>
-                  <Link href="/admin/settings" className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/settings' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
+                  <Link href="/admin/settings" prefetch={false} className={cn('flex items-center gap-2.5 px-3 py-2 rounded-md transition-colors', pathname === '/admin/settings' ? 'bg-primary text-primary-foreground font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground')}>
                     <Settings className="h-4 w-4 shrink-0 text-slate-500" />
                     <span>Settings & Policy</span>
                   </Link>
@@ -170,11 +170,11 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
               {/* Portals Switch Section */}
               <div className="pt-2 border-t border-border/60 space-y-2">
                 <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block">Other Portals</span>
-                <Link href="/field-officer" className="flex items-center justify-between px-3 py-2 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold">
+                <Link href="/field-officer" prefetch={false} className="flex items-center justify-between px-3 py-2 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold">
                   <span>Field Officer Mobile App</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
-                <Link href="/farmer" className="flex items-center justify-between px-3 py-2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
+                <Link href="/farmer" prefetch={false} className="flex items-center justify-between px-3 py-2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
                   <span>Farmer Passbook App</span>
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
@@ -187,6 +187,7 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
         <div className="hidden lg:flex items-center gap-1.5 text-xs">
           <Link 
             href="/field-officer" 
+            prefetch={false}
             className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
           >
             <span>Field Officer</span>
@@ -195,6 +196,7 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
           <span className="text-border">|</span>
           <Link 
             href="/farmer" 
+            prefetch={false}
             className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
           >
             <span>Farmer App</span>

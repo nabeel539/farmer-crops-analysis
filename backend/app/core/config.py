@@ -1,5 +1,6 @@
 """Application configuration loaded from environment variables."""
 
+import os
 from pydantic_settings import BaseSettings
 
 
@@ -10,8 +11,8 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     DEBUG: bool = True
 
-    # Database
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/krishi_agritech"
+    # Database: Defaults to SQLite for immediate local testing if Postgres not set
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./krishi.db")
 
     # JWT
     JWT_SECRET_KEY: str = "change-me-in-production"
