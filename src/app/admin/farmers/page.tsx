@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   useGetFarmersQuery,
   useCreateFarmerMutation,
@@ -91,17 +91,14 @@ const farmerSchema = z.object({
 
 type FarmerFormValues = z.infer<typeof farmerSchema>;
 
-const DISTRICT_OPTIONS = [
-  { value: 'Ludhiana', label: 'Ludhiana', subLabel: 'Punjab' },
-  { value: 'Karnal', label: 'Karnal', subLabel: 'Haryana' },
-  { value: 'Patiala', label: 'Patiala', subLabel: 'Punjab' },
-  { value: 'Bathinda', label: 'Bathinda', subLabel: 'Punjab' },
-  { value: 'Meerut', label: 'Meerut', subLabel: 'Uttar Pradesh' },
-  { value: 'Indore', label: 'Indore', subLabel: 'Madhya Pradesh' },
-  { value: 'Ambala', label: 'Ambala', subLabel: 'Haryana' },
-  { value: 'Sirsa', label: 'Sirsa', subLabel: 'Haryana' },
-  { value: 'Sangrur', label: 'Sangrur', subLabel: 'Punjab' },
-];
+import {
+  getAllStateOptions,
+  getDistrictsForState,
+  getAllDistrictOptions,
+} from '@/data/indiaStatesDistricts';
+
+const STATE_OPTIONS = getAllStateOptions();
+const ALL_DISTRICT_OPTIONS = getAllDistrictOptions();
 
 export default function FarmersPage() {
   const { data: rawFarmers = [], isLoading, refetch } = useGetFarmersQuery(undefined, {
@@ -165,8 +162,30 @@ export default function FarmersPage() {
     },
   });
 
+  const selectedState = watch('state');
   const selectedDistrict = watch('district');
   const selectedStatus = watch('status');
+
+  const formDistrictOptions = useMemo(() => {
+    return getDistrictsForState(selectedState);
+  }, [selectedState]);
+
+  const filterDistrictOptions = useMemo(() => {
+    const presentDistricts = Array.from(new Set(rawFarmers.map((f) => f.district).filter(Boolean)));
+    const uniqueDistricts = Array.from(
+      new Set([...presentDistricts, ...ALL_DISTRICT_OPTIONS.map((d) => d.value)])
+    );
+    return [
+      { label: 'All Districts', value: 'ALL' },
+      ...uniqueDistricts.map((dist) => {
+        const found = ALL_DISTRICT_OPTIONS.find((d) => d.value === dist);
+        return {
+          label: found ? `${dist} (${found.subLabel})` : dist,
+          value: dist,
+        };
+      }),
+    ];
+  }, [rawFarmers]);
 
   // Filter Farmers
   const filteredFarmers = rawFarmers.filter((farmer) => {
@@ -431,10 +450,7 @@ export default function FarmersPage() {
               setDistrictFilter(v);
               setCurrentPage(1);
             },
-            options: [
-              { label: 'All Districts', value: 'ALL' },
-              ...DISTRICT_OPTIONS.map((d) => ({ label: d.label, value: d.value })),
-            ],
+            options: filterDistrictOptions,
           },
           {
             id: 'status',
@@ -977,25 +993,39 @@ export default function FarmersPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">State *</Label>
+                <SearchableSelect
+                  options={STATE_OPTIONS}
+                  value={selectedState}
+                  onChange={(val) => {
+                    setValue('state', val, { shouldValidate: true });
+                    const validDistricts = getDistrictsForState(val);
+                    if (!validDistricts.some((d) => d.value === selectedDistrict)) {
+                      setValue('district', validDistricts[0]?.value || '', { shouldValidate: true });
+                    }
+                  }}
+                  placeholder="Select State"
+                  searchPlaceholder="Search Indian state / UT..."
+                />
+                {errors.state && <p className="text-[10px] text-destructive">{errors.state.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">District *</Label>
                 <SearchableSelect
-                  options={DISTRICT_OPTIONS}
+                  options={formDistrictOptions}
                   value={selectedDistrict}
-                  onChange={(val) => setValue('district', val)}
+                  onChange={(val) => {
+                    setValue('district', val, { shouldValidate: true });
+                    const found = ALL_DISTRICT_OPTIONS.find((d) => d.value === val);
+                    if (found && (!selectedState || selectedState !== found.state)) {
+                      setValue('state', found.state, { shouldValidate: true });
+                    }
+                  }}
                   placeholder="Select District"
                   searchPlaceholder="Search district..."
                 />
                 {errors.district && <p className="text-[10px] text-destructive">{errors.district.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">State *</Label>
-                <Input
-                  placeholder="e.g., Punjab / Haryana"
-                  {...register('state')}
-                  className="text-xs"
-                />
-                {errors.state && <p className="text-[10px] text-destructive">{errors.state.message}</p>}
               </div>
             </div>
 
