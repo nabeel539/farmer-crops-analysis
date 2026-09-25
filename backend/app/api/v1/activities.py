@@ -27,9 +27,9 @@ router = APIRouter(prefix="/activities", tags=["Activities"])
 def create_activity(
     data: ActivityCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_or_officer),
+    current_user: User = Depends(get_current_user),
 ) -> Activity:
-    """Schedule a new agronomic field operation."""
+    """Schedule or log a new agronomic field operation."""
     # 1. Verify farmer exists
     farmer = db.query(Farmer).filter(Farmer.id == data.farmer_id).first()
     if not farmer:
@@ -52,7 +52,7 @@ def create_activity(
         farmer_id=data.farmer_id,
         field_id=data.field_id,
         activity_type=ActivityType(data.activity_type),
-        scheduled_date=data.scheduled_date,
+        scheduled_date=data.scheduled_date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         status=ActivityStatus.PENDING,
         dosage_or_volume=data.dosage_or_volume,
         cost=data.cost,

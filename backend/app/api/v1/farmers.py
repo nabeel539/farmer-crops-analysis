@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.exceptions import NotFoundException
-from app.dependencies.auth import require_admin_or_officer
+from app.dependencies.auth import get_current_user, require_admin_or_officer
 from app.models.farmer import Farmer, FarmerStatus
 from app.models.user import User, UserRole
 from app.schemas.farmer import (
@@ -54,11 +54,11 @@ def list_farmers(
     status: str | None = None,
     search: str | None = None,
     page: int = Query(default=1, ge=1),
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_or_officer),
+    current_user: User = Depends(get_current_user),
 ) -> list[Farmer]:
-    """List farmers with optional filters and pagination. Admin or Field Officer only."""
+    """List farmers with optional filters and pagination."""
     query = db.query(Farmer)
 
     if village:
@@ -80,9 +80,9 @@ def list_farmers(
 def get_farmer(
     farmer_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_or_officer),
+    current_user: User = Depends(get_current_user),
 ) -> Farmer:
-    """Get a specific farmer by ID. Admin or Field Officer only."""
+    """Get a specific farmer by ID."""
     farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
     if not farmer:
         raise NotFoundException("Farmer not found")

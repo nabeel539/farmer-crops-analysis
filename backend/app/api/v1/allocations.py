@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.dependencies.auth import require_admin
+from app.dependencies.auth import get_current_user, require_admin
 from app.models.user import User
 from app.models.allocation import SeedAllocation
 from app.schemas.seed import SeedAllocationCreate, SeedAllocationResponse
@@ -37,9 +37,9 @@ def list_allocations(
     field_id: str | None = None,
     seed_batch_id: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ) -> list[SeedAllocation]:
-    """List seed allocations with optional filters. Admin only."""
+    """List seed allocations with optional filters."""
     query = db.query(SeedAllocation)
     if farmer_id:
         query = query.filter(SeedAllocation.farmer_id == farmer_id)
