@@ -55,23 +55,24 @@ export function FarmerSidebar({ activeTab, setActiveTab }: FarmerSidebarProps) {
       title: 'Farm Overview',
       items: [
         { id: 'CROP_STATUS', title: 'My Wheat Crop', subtitle: 'Live Crop & Phenology', icon: Sprout },
-        { id: 'PARCELS', title: 'Land Parcels & GPS', subtitle: 'Field Boundaries', icon: MapPin }
-      ]
+        { id: 'PASSBOOK', title: 'Seed Passbook', subtitle: 'Certified Seed Slips', icon: CreditCard },
+        { id: 'PARCELS', title: 'Land Parcels & GPS', subtitle: 'Field Boundaries', icon: MapPin },
+      ],
     },
     {
       title: 'Field Operations',
       items: [
-        { id: 'OPERATIONS', title: 'Field Operations Log', subtitle: 'Irrigation & Fertilizers', icon: Droplets },
-        { id: 'DOCTOR', title: 'Crop Doctor & AI', subtitle: 'Leaf Disease Diagnosis', icon: Camera, badge: 'AI Scan' }
-      ]
+        { id: 'OPERATIONS', title: 'Kisan Diary', subtitle: 'Irrigation & Fertilizers', icon: BookOpen },
+        { id: 'VISITS', title: 'Officer Inspections', subtitle: 'Scouting & Verification', icon: ShieldCheck },
+      ],
     },
     {
       title: 'Advisories & Market',
       items: [
-        { id: 'ADVISORIES', title: 'Farm Advisories', subtitle: 'Expert Agronomy Tips', icon: BookOpen, badge: unreadAlerts.length > 0 ? `${unreadAlerts.length}` : undefined },
-        { id: 'WEATHER_MANDI', title: 'Weather & Mandi Rates', subtitle: 'Forecast & Grain Prices', icon: CloudSun }
-      ]
-    }
+        { id: 'HARVEST', title: 'Harvest & Mandi MSP', subtitle: 'Receipts & Pricing', icon: Wheat },
+        { id: 'WEATHER_ADVISORY', title: 'Weather & Advisory', subtitle: 'Forecast & Spray Timings', icon: CloudSun },
+      ],
+    },
   ];
 
   return (

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.exceptions import BadRequestException, NotFoundException
-from app.dependencies.auth import require_admin_or_officer
+from app.dependencies.auth import get_current_user, require_admin_or_officer
 from app.models.farmer import Farmer
 from app.models.field import Field, FieldStatus, PolygonColor
 from app.models.user import User
@@ -57,9 +57,9 @@ def list_fields(
     farmer_id: str | None = None,
     status: str | None = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_or_officer),
+    current_user: User = Depends(get_current_user),
 ) -> list[Field]:
-    """List fields. Optionally filter by farmer or status. Admin or Field Officer only."""
+    """List fields. Optionally filter by farmer or status."""
     query = db.query(Field)
     if farmer_id:
         query = query.filter(Field.farmer_id == farmer_id)
@@ -72,9 +72,9 @@ def list_fields(
 def get_field(
     field_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_or_officer),
+    current_user: User = Depends(get_current_user),
 ) -> Field:
-    """Get a specific field by ID. Admin or Field Officer only."""
+    """Get a specific field by ID."""
     field = db.query(Field).filter(Field.id == field_id).first()
     if not field:
         raise NotFoundException("Field not found")

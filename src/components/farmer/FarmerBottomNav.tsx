@@ -7,7 +7,8 @@ import {
   CreditCard,
   Droplets,
   BookOpen,
-  Camera
+  Camera,
+  CloudSun,
 } from 'lucide-react';
 import { useAppSelector } from '@/store/hooks';
 
@@ -16,37 +17,43 @@ interface FarmerBottomNavProps {
   setActiveTab: (tab: string) => void;
 }
 
+interface NavItem {
+  id: string;
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+}
+
 export function FarmerBottomNav({ activeTab, setActiveTab }: FarmerBottomNavProps) {
   const alerts = useAppSelector((state) => state.alerts.alerts);
   const unreadAlerts = alerts.filter((a) => !a.resolved);
 
-  const navItems = [
+  const navItems: NavItem[] = [
     {
       id: 'CROP_STATUS',
       title: 'My Crop',
-      icon: Sprout
+      icon: Sprout,
     },
     {
       id: 'PASSBOOK',
       title: 'Passbook',
-      icon: CreditCard
+      icon: CreditCard,
     },
     {
       id: 'OPERATIONS',
-      title: 'Operations',
-      icon: Droplets
-    },
-    {
-      id: 'DOCTOR',
-      title: 'Doctor',
-      icon: Camera
-    },
-    {
-      id: 'ADVISORIES',
-      title: 'Advisories',
+      title: 'Kisan Diary',
       icon: BookOpen,
-      badge: unreadAlerts.length > 0 ? `${unreadAlerts.length}` : undefined
-    }
+    },
+    {
+      id: 'HARVEST',
+      title: 'Mandi Rates',
+      icon: Droplets,
+    },
+    {
+      id: 'WEATHER_ADVISORY',
+      title: 'Weather',
+      icon: CloudSun,
+    },
   ];
 
   return (

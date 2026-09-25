@@ -98,47 +98,69 @@ export function FarmerHeader({
                 </button>
 
                 <button
+                  onClick={() => setActiveTab('PASSBOOK')}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
+                    activeTab === 'PASSBOOK' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                  )}
+                >
+                  <span className="flex items-center gap-2.5"><CreditCard className="h-4 w-4" /> Seed Passbook</span>
+                  <span className="text-[10px] opacity-80 font-mono">Slips</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('PARCELS')}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
+                    activeTab === 'PARCELS' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                  )}
+                >
+                  <span className="flex items-center gap-2.5"><MapPin className="h-4 w-4" /> Land Parcels & GPS</span>
+                  <span className="text-[10px] opacity-80 font-mono">Boundary</span>
+                </button>
+
+                <button
                   onClick={() => setActiveTab('OPERATIONS')}
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
                     activeTab === 'OPERATIONS' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
-                  <span className="flex items-center gap-2.5"><Droplets className="h-4 w-4" /> Field Operations</span>
-                  <span className="text-[10px] opacity-80 font-mono">Log Activity</span>
+                  <span className="flex items-center gap-2.5"><BookOpen className="h-4 w-4" /> Kisan Diary</span>
+                  <span className="text-[10px] opacity-80 font-mono">Self-Log</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('DOCTOR')}
+                  onClick={() => setActiveTab('VISITS')}
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
-                    activeTab === 'DOCTOR' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                    activeTab === 'VISITS' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
-                  <span className="flex items-center gap-2.5"><Camera className="h-4 w-4" /> Crop Doctor & AI</span>
-                  <Badge variant="default" className="text-[10px] h-4 bg-emerald-500">Scan</Badge>
+                  <span className="flex items-center gap-2.5"><ShieldCheck className="h-4 w-4" /> Officer Inspections</span>
+                  <span className="text-[10px] opacity-80 font-mono">Scouting</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('ADVISORIES')}
+                  onClick={() => setActiveTab('HARVEST')}
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
-                    activeTab === 'ADVISORIES' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                    activeTab === 'HARVEST' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
-                  <span className="flex items-center gap-2.5"><BookOpen className="h-4 w-4" /> Farm Advisories</span>
-                  <span className="text-[10px] opacity-80 font-mono">Expert Tips</span>
+                  <span className="flex items-center gap-2.5"><Wheat className="h-4 w-4" /> Harvest & Mandi MSP</span>
+                  <span className="text-[10px] opacity-80 font-mono">Pricing</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('WEATHER_MANDI')}
+                  onClick={() => setActiveTab('WEATHER_ADVISORY')}
                   className={cn(
                     'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors cursor-pointer text-left',
-                    activeTab === 'WEATHER_MANDI' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
+                    activeTab === 'WEATHER_ADVISORY' ? 'bg-emerald-600 text-white font-bold' : 'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground'
                   )}
                 >
-                  <span className="flex items-center gap-2.5"><CloudSun className="h-4 w-4" /> Weather & Mandi Rates</span>
-                  <span className="text-[10px] opacity-80 font-mono">Prices</span>
+                  <span className="flex items-center gap-2.5"><CloudSun className="h-4 w-4" /> Weather & Advisory</span>
+                  <span className="text-[10px] opacity-80 font-mono">Forecast</span>
                 </button>
               </div>
 
