@@ -43,9 +43,19 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)) -> User:
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, db: Session = Depends(get_db)) -> dict:
     """Authenticate and receive a JWT access token."""
-    user = db.query(User).filter(User.email == data.email).first()
+    # Allow login with email or mobile/user_id
+    ident = data.email.strip()
+    user = (
+        db.query(User)
+        .filter(
+            (User.email == ident)
+            | (User.mobile == ident)
+            | (User.email == f"{ident}@krishi.local")
+        )
+        .first()
+    )
     if not user or not verify_password(data.password, user.password_hash):
-        raise UnauthorizedException("Invalid email or password")
+        raise UnauthorizedException("Invalid user ID / email or password")
 
     if not user.is_active:
         raise UnauthorizedException("User account is inactive")

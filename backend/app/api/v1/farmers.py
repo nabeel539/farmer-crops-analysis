@@ -7,8 +7,14 @@ from app.core.database import get_db
 from app.core.exceptions import NotFoundException
 from app.dependencies.auth import require_admin_or_officer
 from app.models.farmer import Farmer, FarmerStatus
-from app.models.user import User
-from app.schemas.farmer import FarmerCreate, FarmerResponse, FarmerUpdate
+from app.models.user import User, UserRole
+from app.schemas.farmer import (
+    FarmerCreate,
+    FarmerResetCredentialsRequest,
+    FarmerResetCredentialsResponse,
+    FarmerResponse,
+    FarmerUpdate,
+)
 
 router = APIRouter(prefix="/farmers", tags=["Farmers"])
 
@@ -105,3 +111,64 @@ def update_farmer(
     db.commit()
     db.refresh(farmer)
     return farmer
+
+
+@router.post("/{farmer_id}/reset-credentials", response_model=FarmerResetCredentialsResponse)
+def reset_farmer_credentials(
+    farmer_id: str,
+    data: FarmerResetCredentialsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_officer),
+) -> dict:
+    """Reset or customize farmer login user ID and password (Admin/Officer only)."""
+    farmer = db.query(Farmer).filter(Farmer.id == farmer_id).first()
+    if not farmer:
+        raise NotFoundException("Farmer not found")
+
+    new_user_id = data.new_user_id.strip() if data.new_user_id else farmer.mobile_number
+    new_password = data.new_password.strip()
+
+    old_mobile = farmer.mobile_number
+    farmer.mobile_number = new_user_id
+
+    from app.core.security import hash_password
+
+    user = (
+        db.query(User)
+        .filter(
+            (User.mobile == old_mobile)
+            | (User.email == f"{old_mobile}@krishi.local")
+            | (User.mobile == new_user_id)
+            | (User.email == f"{new_user_id}@krishi.local")
+        )
+        .first()
+    )
+
+    if user:
+        user.mobile = new_user_id
+        user.email = f"{new_user_id}@krishi.local"
+        user.password_hash = hash_password(new_password)
+        user.name = farmer.name
+        user.is_active = True
+    else:
+        user = User(
+            name=farmer.name,
+            email=f"{new_user_id}@krishi.local",
+            mobile=new_user_id,
+            password_hash=hash_password(new_password),
+            role=UserRole.FARMER,
+            is_active=True,
+        )
+        db.add(user)
+
+    db.commit()
+    db.refresh(farmer)
+
+    return {
+        "farmer_id": farmer.id,
+        "farmer_name": farmer.name,
+        "user_id": new_user_id,
+        "status": "SUCCESS",
+        "message": f"Login credentials for {farmer.name} updated successfully.",
+    }
+

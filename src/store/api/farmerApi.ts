@@ -36,6 +36,19 @@ export interface FarmerListParams {
   limit?: number;
 }
 
+export interface FarmerResetCredentialsRequest {
+  new_user_id?: string;
+  new_password: string;
+}
+
+export interface FarmerResetCredentialsResponse {
+  farmer_id: string;
+  farmer_name: string;
+  user_id: string;
+  status: string;
+  message: string;
+}
+
 export const farmerApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getFarmers: builder.query<Farmer[], FarmerListParams | void>({
@@ -83,6 +96,20 @@ export const farmerApi = baseApi.injectEndpoints({
         { type: 'Farmer', id: 'LIST' },
       ],
     }),
+    resetFarmerCredentials: builder.mutation<
+      FarmerResetCredentialsResponse,
+      { id: string; data: FarmerResetCredentialsRequest }
+    >({
+      query: ({ id, data }) => ({
+        url: `/farmers/${id}/reset-credentials`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Farmer', id },
+        { type: 'Farmer', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -91,4 +118,6 @@ export const {
   useGetFarmerByIdQuery,
   useCreateFarmerMutation,
   useUpdateFarmerMutation,
+  useResetFarmerCredentialsMutation,
 } = farmerApi;
+
