@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SearchFilterBar } from '@/components/shared/SearchFilterBar';
+import { useGetFarmersQuery } from '@/store/api/farmerApi';
+import { useGetFieldsQuery } from '@/store/api/fieldApi';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { MetricCard } from '@/components/shared/MetricCard';
@@ -152,8 +154,8 @@ export default function CropCyclesPage() {
       return;
     }
 
-    const selFarmer = farmers.find((f) => f.id === farmerId);
-    const selParcel = parcels.find((p) => p.id === parcelId);
+    const selFarmer = allFarmers.find((f) => f.id === farmerId);
+    const selParcel = allParcels.find((p) => p.id === parcelId);
 
     const newCycleRecord: CropCycle = {
       id: `cycle-${Date.now()}`,
@@ -185,13 +187,40 @@ export default function CropCyclesPage() {
     setAddModalOpen(false);
   };
 
-  const farmerOptions = farmers.map((f) => ({
+  const { data: apiFarmers = [] } = useGetFarmersQuery();
+  const { data: apiParcels = [] } = useGetFieldsQuery();
+
+  // Combine Redux mock farmers and DB farmers
+  const allFarmers = [
+    ...farmers,
+    ...apiFarmers
+      .filter((af) => !farmers.some((rf) => rf.id === af.id))
+      .map((af) => ({
+        id: af.id,
+        fullName: af.name,
+        village: af.village,
+      })),
+  ];
+
+  const allParcels = [
+    ...parcels,
+    ...apiParcels
+      .filter((ap) => !parcels.some((rp) => rp.id === ap.id))
+      .map((ap) => ({
+        id: ap.id,
+        parcelCode: ap.field_name || `FLD-${ap.id.slice(0, 6)}`,
+        totalAcreage: ap.area || 5,
+        soilType: 'ALLUVIAL_LOAM',
+      })),
+  ];
+
+  const farmerOptions = allFarmers.map((f) => ({
     value: f.id,
     label: f.fullName,
     subLabel: f.village,
   }));
 
-  const parcelOptions = parcels.map((p) => ({
+  const parcelOptions = allParcels.map((p) => ({
     value: p.id,
     label: p.parcelCode,
     subLabel: `${p.totalAcreage} Acres (${p.soilType.replace(/_/g, ' ')})`,
@@ -207,8 +236,8 @@ export default function CropCyclesPage() {
           label: 'Initiate Crop Cycle',
           icon: Sprout,
           onClick: () => {
-            if (farmers.length > 0 && !farmerId) setFarmerId(farmers[0].id);
-            if (parcels.length > 0 && !parcelId) setParcelId(parcels[0].id);
+            if (allFarmers.length > 0 && !farmerId) setFarmerId(allFarmers[0].id);
+            if (allParcels.length > 0 && !parcelId) setParcelId(allParcels[0].id);
             setAddModalOpen(true);
           },
         }}

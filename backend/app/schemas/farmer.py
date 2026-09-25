@@ -49,3 +49,21 @@ class FarmerResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class FarmerResetCredentialsRequest(BaseModel):
+    """Schema for admin resetting farmer login credentials."""
+
+    new_user_id: str | None = Field(None, min_length=3, max_length=100, description="New Mobile or Login User ID")
+    new_password: str = Field(..., min_length=6, max_length=100, description="New Password")
+
+
+class FarmerResetCredentialsResponse(BaseModel):
+    """Response after resetting farmer credentials."""
+
+    farmer_id: str
+    farmer_name: str
+    user_id: str
+    status: str
+    message: str
+
