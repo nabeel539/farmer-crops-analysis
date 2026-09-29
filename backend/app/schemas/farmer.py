@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class FarmerCreate(BaseModel):
@@ -10,6 +10,7 @@ class FarmerCreate(BaseModel):
 
     name: str = Field(..., min_length=2, max_length=255)
     mobile_number: str = Field(..., min_length=10, max_length=20)
+    email: str | None = Field(None, max_length=255)
     address: str | None = None
     village: str = Field(..., min_length=1, max_length=100)
     block: str | None = Field(None, max_length=100)
@@ -17,6 +18,15 @@ class FarmerCreate(BaseModel):
     state: str = Field(..., min_length=1, max_length=100)
     status: str = Field(default="ACTIVE", pattern="^(ACTIVE|INACTIVE|PENDING_VERIFICATION)$")
     registration_date: str | None = Field(None, max_length=20)
+    login_user_id: str | None = Field(None, max_length=100, description="Login User ID set by admin")
+    login_password: str | None = Field(None, max_length=100, description="Login password set by admin")
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def clean_email(cls, v: str | None) -> str | None:
+        if v is None or not str(v).strip():
+            return None
+        return str(v).strip()
 
 
 class FarmerUpdate(BaseModel):
@@ -24,12 +34,20 @@ class FarmerUpdate(BaseModel):
 
     name: str | None = Field(None, min_length=2, max_length=255)
     mobile_number: str | None = Field(None, min_length=10, max_length=20)
+    email: str | None = Field(None, max_length=255)
     address: str | None = None
     village: str | None = Field(None, min_length=1, max_length=100)
     block: str | None = Field(None, max_length=100)
     district: str | None = Field(None, min_length=1, max_length=100)
     state: str | None = Field(None, min_length=1, max_length=100)
     status: str | None = Field(None, pattern="^(ACTIVE|INACTIVE|PENDING_VERIFICATION)$")
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def clean_email(cls, v: str | None) -> str | None:
+        if v is None or not str(v).strip():
+            return None
+        return str(v).strip()
 
 
 class FarmerResponse(BaseModel):
@@ -38,6 +56,7 @@ class FarmerResponse(BaseModel):
     id: str
     name: str
     mobile_number: str
+    email: str | None = None
     address: str | None = None
     village: str
     block: str | None = None

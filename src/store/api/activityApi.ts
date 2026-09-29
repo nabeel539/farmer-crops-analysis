@@ -117,6 +117,13 @@ export const activityApi = baseApi.injectEndpoints({
         { type: 'Activity', id: 'LIST' },
       ],
     }),
+    deleteActivity: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/activities/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Activity', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -126,4 +133,5 @@ export const {
   useCreateActivityMutation,
   useCompleteActivityMutation,
   useUpdateActivityMutation,
+  useDeleteActivityMutation,
 } = activityApi;

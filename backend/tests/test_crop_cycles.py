@@ -93,3 +93,24 @@ def test_list_crop_cycles_filter(client, admin_headers, test_farmer_and_field):
     response = client.get(f"/api/v1/crop-cycles?farmer_id={farmer.id}", headers=admin_headers)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_create_crop_cycle_with_iso_dates(client, admin_headers, test_farmer_and_field):
+    farmer, field = test_farmer_and_field
+    payload = {
+        "farmer_id": farmer.id,
+        "field_id": field.id,
+        "crop_type": "WHEAT",
+        "variety": "HD-2967",
+        "season": "RABI_2025_2026",
+        "sowing_date": "2025-11-10T00:00:00.000Z",
+        "sowing_method": "DRILL_SOWING",
+        "allocated_acres": 5,
+        "expected_harvest_date": "2026-04-20T00:00:00.000Z",
+        "expected_yield_maunds_per_acre": 52,
+    }
+    response = client.post("/api/v1/crop-cycles", json=payload, headers=admin_headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["sowing_date"] == "2025-11-10"
+    assert data["expected_harvest_date"] == "2026-04-20"

@@ -18,25 +18,41 @@ import {
   UserCheck, 
   Smartphone, 
   Sparkles, 
-  ChevronDown, 
   LogOut, 
-  LogIn, 
-  ExternalLink,
-  User as UserIcon 
+  LogIn
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
-export function UserNav() {
+interface UserNavProps {
+  variant?: 'avatar' | 'pill';
+  className?: string;
+}
+
+export function UserNav({ variant = 'avatar', className }: UserNavProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [mounted, setMounted] = React.useState(false);
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const { currentUser, activeRole } = useAppSelector((state) => state.ui);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const displayName = user?.name || currentUser?.name || 'Guest User';
   const displayEmail = user?.email || currentUser?.email || 'guest@krishi.com';
   const role = user?.role || activeRole || 'FARMER';
+
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'U';
 
   const handleLogout = () => {
     dispatch(logout());
@@ -44,20 +60,44 @@ export function UserNav() {
     router.push('/login');
   };
 
-  const getRoleIcon = (userRole: string) => {
+  const getRoleTheme = (userRole: string) => {
     switch (userRole) {
       case 'ADMIN':
       case 'SUPER_ADMIN':
-        return <Shield className="h-3.5 w-3.5 text-rose-500" />;
+        return {
+          icon: <Shield className="h-3.5 w-3.5 text-rose-500" />,
+          avatarBg: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 hover:bg-rose-500/25',
+          badgeClass: 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30',
+        };
       case 'AGRI_MANAGER':
-        return <Sparkles className="h-3.5 w-3.5 text-amber-500" />;
+        return {
+          icon: <Sparkles className="h-3.5 w-3.5 text-amber-500" />,
+          avatarBg: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/25',
+          badgeClass: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30',
+        };
       case 'FIELD_OFFICER':
-        return <UserCheck className="h-3.5 w-3.5 text-blue-500" />;
+        return {
+          icon: <UserCheck className="h-3.5 w-3.5 text-blue-500" />,
+          avatarBg: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 hover:bg-blue-500/25',
+          badgeClass: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30',
+        };
       case 'FARMER':
       default:
-        return <Smartphone className="h-3.5 w-3.5 text-emerald-500" />;
+        return {
+          icon: <Smartphone className="h-3.5 w-3.5 text-emerald-500" />,
+          avatarBg: 'bg-emerald-600/15 text-emerald-700 dark:text-emerald-300 border-emerald-600/30 hover:bg-emerald-600/25',
+          badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+        };
     }
   };
+
+  const theme = getRoleTheme(role);
+
+  if (!mounted) {
+    return (
+      <div className="h-8 w-8 rounded-full bg-muted/40 animate-pulse border border-border/40 shrink-0" />
+    );
+  }
 
   if (!isAuthenticated && !user) {
     return (
@@ -77,72 +117,46 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="h-8 gap-2 bg-background/90 border-primary/30 hover:border-primary text-xs font-semibold px-2.5 rounded-md shadow-xs cursor-pointer"
+        <button
+          type="button"
+          aria-label="User account menu"
+          className={cn(
+            'w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border shrink-0 cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary/40 active:scale-95',
+            theme.avatarBg,
+            className
+          )}
         >
-          {getRoleIcon(role)}
-          <span className="hidden sm:inline max-w-[120px] truncate">{displayName}</span>
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono font-medium">
-            {role}
-          </Badge>
-          <ChevronDown className="h-3 w-3 text-muted-foreground ml-0.5" />
-        </Button>
+          {initials}
+        </button>
       } />
-      <DropdownMenuContent align="end" className="w-60">
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-xs font-bold leading-none text-foreground">{displayName}</p>
-            <p className="text-[11px] leading-none text-muted-foreground truncate">{displayEmail}</p>
+      <DropdownMenuContent align="end" className="w-56 p-1.5 shadow-xl">
+        <DropdownMenuLabel className="font-normal p-2 pb-1.5">
+          <div className="flex items-center gap-2.5">
+            <div className={cn('w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border shrink-0', theme.avatarBg)}>
+              {initials}
+            </div>
+            <div className="flex flex-col min-w-0 flex-1">
+              <p className="text-xs font-bold leading-tight text-foreground truncate">{displayName}</p>
+              <p className="text-[11px] leading-tight text-muted-foreground truncate">{displayEmail}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <Badge variant="outline" className={cn('text-[9px] px-1.5 py-0 h-4 font-mono font-medium', theme.badgeClass)}>
+                  {role}
+                </Badge>
+              </div>
+            </div>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        
-        {/* Portal links based on authorization */}
-        <DropdownMenuItem 
-          onClick={() => router.push('/admin')}
-          className="cursor-pointer text-xs flex items-center justify-between"
-        >
-          <span className="flex items-center gap-2">
-            <Shield className="h-3.5 w-3.5 text-emerald-600" />
-            <span>Admin Console</span>
-          </span>
-          <ExternalLink className="h-3 w-3 text-muted-foreground" />
-        </DropdownMenuItem>
-        
-        <DropdownMenuItem 
-          onClick={() => router.push('/field-officer')}
-          className="cursor-pointer text-xs flex items-center justify-between"
-        >
-          <span className="flex items-center gap-2">
-            <UserCheck className="h-3.5 w-3.5 text-blue-600" />
-            <span>Field Officer App</span>
-          </span>
-          <ExternalLink className="h-3 w-3 text-muted-foreground" />
-        </DropdownMenuItem>
-
-        <DropdownMenuItem 
-          onClick={() => router.push('/farmer')}
-          className="cursor-pointer text-xs flex items-center justify-between"
-        >
-          <span className="flex items-center gap-2">
-            <Smartphone className="h-3.5 w-3.5 text-amber-600" />
-            <span>Farmer Passbook</span>
-          </span>
-          <ExternalLink className="h-3 w-3 text-muted-foreground" />
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="my-1" />
 
         <DropdownMenuItem 
           onClick={handleLogout}
-          className="cursor-pointer text-xs text-rose-600 focus:text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-2"
+          className="cursor-pointer text-xs text-rose-600 focus:text-rose-600 dark:text-rose-400 focus:bg-rose-500/10 font-semibold flex items-center gap-2 px-2.5 py-2 rounded-md"
         >
-          <LogOut className="h-3.5 w-3.5" />
+          <LogOut className="h-3.5 w-3.5 text-rose-500" />
           <span>Sign Out / Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+

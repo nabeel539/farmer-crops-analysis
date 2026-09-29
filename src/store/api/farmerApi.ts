@@ -4,6 +4,7 @@ export interface Farmer {
   id: string;
   name: string;
   mobile_number: string;
+  email: string | null;
   address: string | null;
   village: string;
   block: string | null;
@@ -18,6 +19,7 @@ export interface Farmer {
 export interface FarmerCreateRequest {
   name: string;
   mobile_number: string;
+  email?: string | null;
   address?: string | null;
   village: string;
   block?: string | null;
@@ -25,6 +27,8 @@ export interface FarmerCreateRequest {
   state: string;
   status?: 'ACTIVE' | 'INACTIVE' | 'PENDING_VERIFICATION';
   registration_date?: string | null;
+  login_user_id?: string | null;
+  login_password?: string | null;
 }
 
 export interface FarmerListParams {
@@ -110,6 +114,16 @@ export const farmerApi = baseApi.injectEndpoints({
         { type: 'Farmer', id: 'LIST' },
       ],
     }),
+    deleteFarmer: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/farmers/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'Farmer', id },
+        { type: 'Farmer', id: 'LIST' },
+      ],
+    }),
   }),
 });
 
@@ -119,5 +133,6 @@ export const {
   useCreateFarmerMutation,
   useUpdateFarmerMutation,
   useResetFarmerCredentialsMutation,
+  useDeleteFarmerMutation,
 } = farmerApi;
 

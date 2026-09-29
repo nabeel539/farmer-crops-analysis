@@ -14,7 +14,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <AdminHeader />
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 pb-20 md:pb-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-3.5 sm:p-5 lg:p-6 pb-20 md:pb-6 w-full space-y-5">
           {children}
         </main>
       </div>

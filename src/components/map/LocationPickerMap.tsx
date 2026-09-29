@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import { 
   Crosshair, 
@@ -448,24 +447,25 @@ export default function LocationPickerMap({
 
     refreshVertexMarkers(initialBounds, map);
 
-    // Progressive viewport invalidations to ensure tiles render immediately upon container layout
-    [20, 80, 180, 350, 700].forEach((delay) => {
-      setTimeout(() => {
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.invalidateSize({ pan: false });
-          mapInstanceRef.current.setView([initialLat, initialLng], mapInstanceRef.current.getZoom(), { animate: false });
-          mapInstanceRef.current.eachLayer((l: any) => {
-            if (l instanceof L.TileLayer) {
-              l.redraw();
-            }
-          });
-        }
-      }, delay);
-    });
-
     mapInstanceRef.current = map;
 
+    // Invalidate size progressively as dialog animation completes so map tiles render immediately
+    const t1 = setTimeout(() => {
+      map.invalidateSize({ animate: false });
+    }, 60);
+
+    const t2 = setTimeout(() => {
+      map.invalidateSize({ animate: false });
+    }, 200);
+
+    const t3 = setTimeout(() => {
+      map.invalidateSize({ animate: false });
+    }, 450);
+
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       map.remove();
       mapInstanceRef.current = null;
       markerRef.current = null;
@@ -473,11 +473,12 @@ export default function LocationPickerMap({
       vertexMarkersRef.current = [];
       edgeMarkersRef.current = [];
     };
-  }, [isFullscreen]);
+  }, []);
 
   // Synchronize when props update
   useEffect(() => {
-    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+    if (!map) return;
     const currentLat = Number(lat) || 29.6857;
     const currentLng = Number(lng) || 76.9905;
     const ac = Number(acreage) || 5;
@@ -485,6 +486,15 @@ export default function LocationPickerMap({
     // Update center marker position
     if (markerRef.current) {
       markerRef.current.setLatLng([currentLat, currentLng]);
+    }
+
+    // Smoothly fly camera to new center location if it shifted
+    const mapCenter = map.getCenter();
+    const dist = Math.abs(mapCenter.lat - currentLat) + Math.abs(mapCenter.lng - currentLng);
+    if (dist > 0.0001) {
+      map.flyTo([currentLat, currentLng], Math.max(map.getZoom(), 17), {
+        duration: 1.2,
+      });
     }
 
     let bounds: [number, number][];
@@ -507,49 +517,56 @@ export default function LocationPickerMap({
       });
     }
 
-    refreshVertexMarkers(bounds, mapInstanceRef.current);
-    mapInstanceRef.current.panTo([currentLat, currentLng], { animate: true, duration: 0.4 });
+    refreshVertexMarkers(bounds, map);
   }, [lat, lng, acreage, polygonColor, pointsCount, customPolygon, colorHex]);
 
-  // ResizeObserver to ensure Leaflet always fills 100% of container on any size change
+  // ResizeObserver to ensure Leaflet always fills container smoothly on any size or fullscreen change
   useEffect(() => {
     if (!mapContainerRef.current) return;
     const observer = new ResizeObserver(() => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+        mapInstanceRef.current.invalidateSize({ animate: false });
       }
     });
     observer.observe(mapContainerRef.current);
     return () => observer.disconnect();
   }, []);
 
-  const triggerMapRefresh = () => {
-    if (!mapInstanceRef.current) return;
-    const map = mapInstanceRef.current;
-    map.invalidateSize(true);
-    const centerLat = Number(lat) || 29.6857;
-    const centerLng = Number(lng) || 76.9905;
-    map.setView([centerLat, centerLng], map.getZoom(), { animate: false });
-    map.eachLayer((layer: any) => {
-      if (typeof layer.redraw === 'function') {
-        layer.redraw();
-      }
-    });
-  };
-
-  // Re-calculate tile coordinates whenever isFullscreen state toggles
+  // Native fullscreenchange event listener
   useEffect(() => {
-    [10, 50, 100, 200, 350, 600].forEach((delay) => {
-      setTimeout(triggerMapRefresh, delay);
-    });
-  }, [isFullscreen]);
+    const handleFullscreenChange = () => {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement
+      );
+      setIsFullscreen(isFs);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ animate: false });
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // Escape key listener for fullscreen
   useEffect(() => {
     if (!isFullscreen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsFullscreen(false);
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        } else {
+          setIsFullscreen(false);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -557,92 +574,106 @@ export default function LocationPickerMap({
   }, [isFullscreen]);
 
   const toggleFullscreen = () => {
-    setIsFullscreen((prev) => !prev);
+    if (!mapWrapperRef.current) return;
+
+    if (!isFullscreen) {
+      if (mapWrapperRef.current.requestFullscreen) {
+        mapWrapperRef.current.requestFullscreen().catch(() => {
+          setIsFullscreen(true);
+        });
+      } else if ((mapWrapperRef.current as any).webkitRequestFullscreen) {
+        (mapWrapperRef.current as any).webkitRequestFullscreen();
+      } else {
+        setIsFullscreen(true);
+      }
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {
+          setIsFullscreen(false);
+        });
+      } else {
+        setIsFullscreen(false);
+      }
+    }
+
+    requestAnimationFrame(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ animate: false });
+      }
+    });
   };
 
-  const mapContent = (
+  return (
     <div
       ref={mapWrapperRef}
       style={{
         width: isFullscreen ? '100vw' : '100%',
-        height: isFullscreen ? '100vh' : undefined,
+        height: isFullscreen ? '100vh' : '100%',
+        minHeight: isFullscreen ? '100vh' : '420px',
       }}
       className={
         isFullscreen
           ? 'fixed inset-0 z-[99999999] w-screen h-screen bg-slate-950 overflow-hidden'
-          : 'relative w-full rounded-xl overflow-hidden border-2 border-emerald-500/40 shadow-md bg-slate-900'
+          : `relative w-full h-full min-h-[420px] rounded-xl overflow-hidden border border-border/70 shadow-md bg-slate-950 ${className || ''}`
       }
     >
       <div
         ref={mapContainerRef}
         style={{
           width: '100%',
-          height: isFullscreen ? '100vh' : '100%',
-          minHeight: isFullscreen ? '100vh' : '380px',
+          height: '100%',
+          minHeight: isFullscreen ? '100vh' : '420px',
         }}
-        className={
-          isFullscreen ? 'w-full h-full bg-slate-950' : className || 'w-full h-[380px] bg-slate-900'
-        }
+        className="w-full h-full bg-slate-950"
       />
 
-      {/* Top Left Floating Instructions Overlay */}
-      <div className="absolute top-2 left-2 z-[1000] bg-black/85 backdrop-blur-md px-3 py-1.5 rounded-lg text-[11px] text-white flex items-center gap-2 border border-white/15 shadow-md pointer-events-none">
-        <Crosshair className="h-4 w-4 text-emerald-400 shrink-0" />
-        <span>
-          <strong>{currentBoundsRef.current.length} Vertices:</strong> Drag circles to reshape &bull;
-          Click vertex for <strong>Delete Menu</strong> &bull; Click edge dot to add vertex
+      {/* Top Left Floating Status Badge */}
+      <div className="absolute top-2.5 left-2.5 z-[1000] bg-slate-950/80 backdrop-blur-md px-2.5 py-1 rounded-lg text-[11px] text-white/90 flex items-center gap-2 border border-white/10 shadow-sm pointer-events-none">
+        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: colorHex }} />
+        <span className="font-medium">
+          {currentBoundsRef.current.length} Vertices &bull; {acreage} Acres
         </span>
       </div>
 
-      {/* Top Right Floating Toolbar (Fullscreen, Invert, Reset) */}
-      <div className="absolute top-2 right-2 z-[1000] flex items-center gap-1.5">
+      {/* Top Right Floating Action Icons (Invert, Reset, Fullscreen) */}
+      <div className="absolute top-2.5 right-2.5 z-[1000] flex items-center gap-1.5 bg-slate-950/70 backdrop-blur-md p-1 rounded-lg border border-white/10 shadow-sm">
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           size="sm"
           onClick={handleInvertPolygon}
-          title="Invert / Reverse Polygon Vertex Direction"
-          className="h-7 px-2 text-[11px] bg-black/80 text-white hover:bg-black/95 border border-white/20 shadow-md gap-1"
+          title="Invert / Reverse Polygon Direction"
+          className="h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/15 cursor-pointer"
         >
           <RotateCw className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Invert</span>
         </Button>
 
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           size="sm"
           onClick={() => handleRegeneratePolygon()}
-          title="Auto Reset to Regular Polygon"
-          className="h-7 px-2 text-[11px] bg-black/80 text-white hover:bg-black/95 border border-white/20 shadow-md gap-1"
+          title="Reset to Regular Shape"
+          className="h-7 w-7 p-0 text-amber-400 hover:text-amber-300 hover:bg-white/15 cursor-pointer"
         >
-          <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-          <span className="hidden sm:inline">Reset Shape</span>
+          <Sparkles className="h-3.5 w-3.5" />
         </Button>
+
+        <div className="w-[1px] h-4 bg-white/20 my-auto" />
 
         <Button
           type="button"
-          variant="secondary"
+          variant="ghost"
           size="sm"
           onClick={toggleFullscreen}
-          title={isFullscreen ? 'Exit Fullscreen Map (Esc)' : 'View Fullscreen Map'}
-          className="h-7 px-2 text-[11px] bg-emerald-700 hover:bg-emerald-600 text-white border border-white/20 shadow-md gap-1 font-semibold"
+          title={isFullscreen ? 'Exit Fullscreen (Esc)' : 'Fullscreen Map'}
+          className="h-7 w-7 p-0 text-emerald-400 hover:text-emerald-300 hover:bg-white/15 cursor-pointer"
         >
-          {isFullscreen ? (
-            <>
-              <Minimize2 className="h-3.5 w-3.5" />
-              <span>Exit Fullscreen</span>
-            </>
-          ) : (
-            <>
-              <Maximize2 className="h-3.5 w-3.5" />
-              <span>Fullscreen Map</span>
-            </>
-          )}
+          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </Button>
       </div>
 
-      {/* Floating Delete Vertex Context Menu (Google Maps Delete Vertex Pattern) */}
+      {/* Floating Delete Vertex Context Menu */}
       {activeVertexMenu && (
         <div
           style={{
@@ -656,7 +687,7 @@ export default function LocationPickerMap({
           <button
             type="button"
             onClick={() => handleDeleteVertex(activeVertexMenu.index)}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10 rounded transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10 rounded transition-colors cursor-pointer"
           >
             <Trash2 className="h-3.5 w-3.5" />
             <span>Delete Vertex #{activeVertexMenu.index + 1}</span>
@@ -664,24 +695,12 @@ export default function LocationPickerMap({
           <button
             type="button"
             onClick={() => setActiveVertexMenu(null)}
-            className="px-1.5 py-1 text-xs text-muted-foreground hover:bg-muted rounded"
+            className="px-1.5 py-1 text-xs text-muted-foreground hover:bg-muted rounded cursor-pointer"
           >
             &times;
           </button>
         </div>
       )}
-
-      {/* Bottom Info Strip */}
-      <div className="absolute bottom-2 left-2 z-[1000] bg-emerald-950/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] font-mono text-emerald-200 border border-emerald-500/30 shadow-sm pointer-events-none">
-        {currentBoundsRef.current.length} Points &bull; {acreage} Acres &bull; GPS: {lat.toFixed(4)},{' '}
-        {lng.toFixed(4)}
-      </div>
     </div>
   );
-
-  if (isFullscreen && typeof document !== 'undefined') {
-    return createPortal(mapContent, document.body);
-  }
-
-  return mapContent;
 }

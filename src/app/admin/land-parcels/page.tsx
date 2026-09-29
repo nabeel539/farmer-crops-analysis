@@ -61,12 +61,44 @@ import {
   Pencil,
   Palette,
   Maximize2,
+  ShieldCheck,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/utils';
 import { useAppSelector } from '@/store/hooks';
 import { DynamicLocationPickerMap } from '@/components/map/DynamicLocationPickerMap';
 import { calculateDefaultPolygonPoints } from '@/lib/gisUtils';
-import { MOCK_LAND_PARCELS, MOCK_FARMERS } from '@/data/mockData';
+
+export const POLYGON_COLOR_PRESETS = [
+  { value: 'GREEN', label: 'GREEN (Optimal)', hex: '#10b981', badgeClass: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' },
+  { value: 'YELLOW', label: 'YELLOW (Monitoring)', hex: '#f59e0b', badgeClass: 'bg-amber-500/10 text-amber-600 border-amber-500/30' },
+  { value: 'RED', label: 'RED (Attention/Stress)', hex: '#ef4444', badgeClass: 'bg-rose-500/10 text-rose-600 border-rose-500/30' },
+  { value: 'BLUE', label: 'BLUE (Harvested/Moisture)', hex: '#3b82f6', badgeClass: 'bg-blue-500/10 text-blue-600 border-blue-500/30' },
+] as const;
+
+export type PolygonColorEnum = 'GREEN' | 'YELLOW' | 'RED' | 'BLUE';
+
+export function normalizeToColorEnum(color?: string | null): PolygonColorEnum {
+  if (!color) return 'GREEN';
+  const u = color.toUpperCase().trim();
+  if (u === 'GREEN' || u === 'YELLOW' || u === 'RED' || u === 'BLUE') {
+    return u as PolygonColorEnum;
+  }
+  const low = color.toLowerCase();
+  if (low.includes('10b981') || low.includes('22c55e') || low.includes('16a34a') || low.includes('green') || low.includes('00ff00')) return 'GREEN';
+  if (low.includes('f59e0b') || low.includes('eab308') || low.includes('ca8a04') || low.includes('yellow') || low.includes('amber')) return 'YELLOW';
+  if (low.includes('ef4444') || low.includes('dc2626') || low.includes('b91c1c') || low.includes('red') || low.includes('rose')) return 'RED';
+  if (low.includes('3b82f6') || low.includes('2563eb') || low.includes('1d4ed8') || low.includes('blue') || low.includes('cyan')) return 'BLUE';
+  return 'GREEN';
+}
+
+export function getPolygonHex(color?: string | null): string {
+  if (!color) return '#10b981';
+  const norm = normalizeToColorEnum(color);
+  const found = POLYGON_COLOR_PRESETS.find((p) => p.value === norm);
+  return found ? found.hex : '#10b981';
+}
 
 const fieldFormSchema = z.object({
   farmer_id: z.string().min(1, 'Please select a registered farmer'),
@@ -76,8 +108,8 @@ const fieldFormSchema = z.object({
   area: z.number().positive('Area must be greater than 0'),
   crop: z.string().min(1, 'Crop type is required'),
   season: z.string().optional().or(z.literal('')),
-  polygon_color: z.string().min(1, 'Color is required'),
-  status: z.enum(['ACTIVE', 'INACTIVE', 'HARVESTED']),
+  polygon_color: z.enum(['GREEN', 'YELLOW', 'RED', 'BLUE']),
+  status: z.enum(['PENDING_VERIFICATION', 'ACTIVE', 'CORRECTION_REQUIRED', 'REJECTED', 'INACTIVE', 'HARVESTED']),
 });
 
 type FieldFormValues = z.infer<typeof fieldFormSchema>;
@@ -116,7 +148,8 @@ export default function LandParcelsPage() {
   const [editArea, setEditArea] = useState(5.0);
   const [editCrop, setEditCrop] = useState('Wheat');
   const [editSeason, setEditSeason] = useState('Rabi 2026-27');
-  const [editColor, setEditColor] = useState('#10b981');
+  const [editColor, setEditColor] = useState<PolygonColorEnum>('GREEN');
+  const [editHexColor, setEditHexColor] = useState('#10b981');
   const [editStatus, setEditStatus] = useState<'ACTIVE' | 'INACTIVE' | 'HARVESTED'>('ACTIVE');
   const [editVillage, setEditVillage] = useState('');
   const [editDistrict, setEditDistrict] = useState('');
@@ -135,58 +168,26 @@ export default function LandParcelsPage() {
   const [deleteField, { isLoading: isDeleting }] = useDeleteFieldMutation();
   const [deleteFieldPolygon] = useDeleteFieldPolygonMutation();
 
-  const baseFarmers =
-    apiFarmers.length > 0
-      ? apiFarmers
-      : MOCK_FARMERS.map((f) => ({
-          id: f.id,
-          name: f.fullName,
-          mobile_number: f.mobile,
-          address: f.village,
-          village: f.village,
-          block: f.tehsil || '',
-          district: f.district,
-          state: 'Haryana',
-          status: 'ACTIVE' as const,
-          registration_date: f.createdDate,
-          created_at: f.createdDate,
-          updated_at: f.createdDate,
-        }));
-
-  const farmers = React.useMemo(() => {
-    const list = [...baseFarmers];
-    if (!list.some((f) => f.name.includes('Ramesh') || f.name.includes('Patel'))) {
-      list.unshift({
-        id: 'farmer-ramesh-patel-001',
-        name: 'Ramesh Patel',
-        mobile_number: '9812345678',
-        address: 'Rampur Village, Karnal',
-        village: 'Rampur',
-        block: 'Karnal',
-        district: 'Karnal',
-        state: 'Haryana',
-        status: 'ACTIVE' as const,
-        registration_date: '2025-10-15',
-        created_at: '2025-10-15',
-        updated_at: '2025-10-15',
-      });
-    }
-    return list;
-  }, [baseFarmers]);
+  const farmers = apiFarmers;
 
   const fields = React.useMemo(() => {
     return apiFields.map((f) => {
       const owner = farmers.find((fm) => fm.id === f.farmer_id);
       return {
         ...f,
-        village: f.village || owner?.village || 'Rampur',
-        district: f.district || owner?.district || 'Karnal',
+        village: f.village || owner?.village || 'N/A',
+        district: f.district || owner?.district || 'N/A',
       };
     });
   }, [apiFields, farmers]);
 
   const totalAcreage = fields.reduce((sum, f) => sum + (f.area || 0), 0);
   const polygonMappedCount = fields.filter((f) => !!f.polygon?.coordinates?.length).length;
+  const verifiedCount = fields.filter(
+    (f) =>
+      f.notes?.toLowerCase().includes('gps verified') ||
+      f.notes?.toLowerCase().includes('verified')
+  ).length;
 
   const filteredFields = fields.filter((f) => {
     const matchesSearch =
@@ -225,7 +226,7 @@ export default function LandParcelsPage() {
       area: 5.0,
       crop: 'Wheat',
       season: 'Rabi 2026-27',
-      polygon_color: '#10b981',
+      polygon_color: 'GREEN',
       status: 'ACTIVE',
     },
   });
@@ -244,6 +245,29 @@ export default function LandParcelsPage() {
           const detectedLng = parseFloat(position.coords.longitude.toFixed(4));
           setLat(detectedLat);
           setLng(detectedLng);
+          setAddCustomPolygon(undefined);
+          toast.success(`GPS Detected: ${detectedLat}, ${detectedLng}`);
+        },
+        (err) => {
+          toast.error(`Location access denied (${err.message}). Enter coordinates manually.`);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      toast.error('Geolocation is not supported by your browser.');
+    }
+  };
+
+  const handleDetectLocationEdit = () => {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      toast.info('Detecting current GPS position...');
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const detectedLat = parseFloat(position.coords.latitude.toFixed(4));
+          const detectedLng = parseFloat(position.coords.longitude.toFixed(4));
+          setEditLat(detectedLat);
+          setEditLng(detectedLng);
+          setEditCustomPolygon(undefined);
           toast.success(`GPS Detected: ${detectedLat}, ${detectedLng}`);
         },
         (err) => {
@@ -301,7 +325,7 @@ export default function LandParcelsPage() {
         latitude: lat,
         longitude: lng,
         polygon: polygon,
-        polygon_color: values.polygon_color as any,
+        polygon_color: normalizeToColorEnum(values.polygon_color),
         status: values.status,
       }).unwrap();
 
@@ -310,7 +334,7 @@ export default function LandParcelsPage() {
       setAddCustomPolygon(undefined);
       reset();
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to register land parcel');
+      toast.error(getErrorMessage(err, 'Failed to register land parcel'));
     }
   };
 
@@ -320,7 +344,7 @@ export default function LandParcelsPage() {
         await deleteField(fieldId).unwrap();
         toast.success(`Field plot "${fieldName}" deleted successfully`);
       } catch (err: any) {
-        toast.error(err?.data?.detail || 'Failed to delete field plot');
+        toast.error(getErrorMessage(err, 'Failed to delete field plot'));
       }
     }
   };
@@ -330,7 +354,7 @@ export default function LandParcelsPage() {
       await deleteFieldPolygon(fieldId).unwrap();
       toast.success('Field polygon detached');
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to remove polygon');
+      toast.error(getErrorMessage(err, 'Failed to remove polygon'));
     }
   };
 
@@ -340,8 +364,9 @@ export default function LandParcelsPage() {
     setEditFarmerId(field.farmer_id);
     setEditArea(field.area || 5.0);
     setEditCrop(field.crop || 'Wheat');
-    setEditSeason(field.season || 'Rabi 2026-27');
-    setEditColor(field.polygon_color || '#10b981');
+    const colorNorm = normalizeToColorEnum(field.polygon_color);
+    setEditColor(colorNorm);
+    setEditHexColor(getPolygonHex(field.polygon_color));
     setEditStatus(field.status || 'ACTIVE');
     setEditVillage(field.village || '');
     setEditDistrict(field.district || 'Karnal');
@@ -417,7 +442,7 @@ export default function LandParcelsPage() {
           area: editArea,
           crop: editCrop,
           season: editSeason,
-          polygon_color: editColor as any,
+          polygon_color: normalizeToColorEnum(editColor),
           status: editStatus,
           village: editVillage,
           district: editDistrict,
@@ -431,7 +456,7 @@ export default function LandParcelsPage() {
       setEditModalOpen(false);
       setEditingField(null);
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to update field');
+      toast.error(getErrorMessage(err, 'Failed to update field'));
     }
   };
 
@@ -460,7 +485,7 @@ export default function LandParcelsPage() {
       />
 
       {/* Metrics Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Registered Fields"
           value={fields.length}
@@ -479,7 +504,18 @@ export default function LandParcelsPage() {
           icon={CheckCircle2}
         />
         <MetricCard
-          title="Active Rabi Wheat Season"
+          title="Field Officer Verification"
+          value={`${verifiedCount} / ${fields.length}`}
+          subtitle={
+            fields.length
+              ? `${Math.round((verifiedCount / fields.length) * 100)}% Verified On-Site`
+              : '0%'
+          }
+          icon={ShieldCheck}
+          variant={verifiedCount === fields.length && fields.length > 0 ? 'primary' : 'default'}
+        />
+        <MetricCard
+          title="Active Rabi Season"
           value="Rabi 2026-27"
           subtitle="Target Moisture: 11.2%"
           icon={MapPin}
@@ -505,7 +541,10 @@ export default function LandParcelsPage() {
             },
             options: [
               { label: 'All Statuses', value: 'ALL' },
-              { label: 'Active', value: 'ACTIVE' },
+              { label: 'Pending Verification', value: 'PENDING_VERIFICATION' },
+              { label: 'Active & Verified', value: 'ACTIVE' },
+              { label: 'Needs Correction', value: 'CORRECTION_REQUIRED' },
+              { label: 'Rejected', value: 'REJECTED' },
               { label: 'Inactive', value: 'INACTIVE' },
               { label: 'Harvested', value: 'HARVESTED' },
             ],
@@ -516,6 +555,8 @@ export default function LandParcelsPage() {
           setStatusFilter('ALL');
           setCurrentPage(1);
         }}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* Main Table / Card View Area */}
@@ -559,7 +600,7 @@ export default function LandParcelsPage() {
                   <TableHead className="font-bold">Location</TableHead>
                   <TableHead className="font-bold text-right">Area (Acres)</TableHead>
                   <TableHead className="font-bold">Crop & Season</TableHead>
-                  <TableHead className="font-bold">GPS Polygon Status</TableHead>
+                  <TableHead className="font-bold">GPS Polygon & Verification</TableHead>
                   <TableHead className="font-bold">Status</TableHead>
                   <TableHead className="w-16 text-center">Actions</TableHead>
                 </TableRow>
@@ -571,6 +612,10 @@ export default function LandParcelsPage() {
                   const ptsLen = field.polygon?.coordinates?.[0]?.length
                     ? field.polygon.coordinates[0].length - 1
                     : 0;
+                  const isGpsVerified = !!(
+                    field.notes?.toLowerCase().includes('gps verified') ||
+                    field.notes?.toLowerCase().includes('verified')
+                  );
 
                   return (
                     <TableRow key={field.id} className="hover:bg-muted/30 transition-colors text-xs">
@@ -609,26 +654,39 @@ export default function LandParcelsPage() {
                       </TableCell>
 
                       <TableCell>
-                        {hasPoly ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] gap-1 font-mono bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
-                          >
-                            <span
-                              className="w-2 h-2 rounded-full inline-block"
-                              style={{
-                                backgroundColor: field.polygon_color?.startsWith('#')
-                                  ? field.polygon_color
-                                  : '#10b981',
-                              }}
-                            />
-                            {ptsLen > 0 ? `${ptsLen}-Pt Polygon` : 'Polygon Mapped'}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                            Point Pin Only
-                          </Badge>
-                        )}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            {hasPoly ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] gap-1 font-mono bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                              >
+                                <span
+                                  className="w-2 h-2 rounded-full inline-block"
+                                  style={{
+                                    backgroundColor: getPolygonHex(field.polygon_color),
+                                  }}
+                                />
+                                {ptsLen > 0 ? `${ptsLen}-Pt (${normalizeToColorEnum(field.polygon_color)})` : normalizeToColorEnum(field.polygon_color)}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                                Point Pin Only
+                              </Badge>
+                            )}
+                          </div>
+                          {isGpsVerified ? (
+                            <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+                              <ShieldCheck className="h-3 w-3 text-emerald-600 shrink-0" />
+                              <span>Verified by Field Officer</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                              <Clock className="h-3 w-3 text-amber-600 shrink-0" />
+                              <span>Pending Officer Verification</span>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
 
                       <TableCell>
@@ -671,6 +729,10 @@ export default function LandParcelsPage() {
                 const ptsLen = field.polygon?.coordinates?.[0]?.length
                   ? field.polygon.coordinates[0].length - 1
                   : 0;
+                const isGpsVerified = !!(
+                  field.notes?.toLowerCase().includes('gps verified') ||
+                  field.notes?.toLowerCase().includes('verified')
+                );
 
                 return (
                   <Card key={field.id} className="border hover:border-primary/40 transition-all shadow-xs">
@@ -693,10 +755,18 @@ export default function LandParcelsPage() {
                           </span>
                         </div>
                         <div>
-                          <span className="text-[11px] text-muted-foreground block">GPS Boundary:</span>
-                          <span className="font-semibold text-emerald-600 text-[11px]">
-                            {hasPoly ? `${ptsLen}-Pt Polygon` : 'Point Pin'}
-                          </span>
+                          <span className="text-[11px] text-muted-foreground block">GPS Verification:</span>
+                          {isGpsVerified ? (
+                            <span className="font-semibold text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                              <span>Verified by Officer</span>
+                            </span>
+                          ) : (
+                            <span className="font-medium text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1 mt-0.5">
+                              <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                              <span>Pending Officer Visit</span>
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -743,120 +813,182 @@ export default function LandParcelsPage() {
 
       {/* REGISTER FIELD PLOT MODAL */}
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[92vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Register Field Plot & GPS Boundary</DialogTitle>
-            <DialogDescription className="text-xs">
-              Link field to farmer and shape polygon boundary with interactive vertex controls.
+        <DialogContent className="sm:max-w-5xl lg:max-w-6xl xl:max-w-7xl w-[96vw] max-h-[95vh] h-[92vh] overflow-hidden flex flex-col p-5 sm:p-6 rounded-2xl shadow-2xl">
+          <DialogHeader className="pb-2 border-b">
+            <DialogTitle className="text-xl font-bold tracking-tight">Register Field Plot & GPS Boundary</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Link field to farmer and shape polygon boundary with interactive vertex controls on the satellite map.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4 pt-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Farmer Searchable Select */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Landowner / Farmer *</Label>
-                <SearchableSelect
-                  options={farmerOptions}
-                  value={selectedFarmerId}
-                  onChange={(val) => {
-                    setValue('farmer_id', val);
-                    const selFarmer = farmers.find((f) => f.id === val);
-                    if (selFarmer) {
-                      setValue('village', selFarmer.village);
-                      setValue('district', selFarmer.district);
-                    }
-                  }}
-                  placeholder="Select Farmer..."
-                  searchPlaceholder="Search farmer name, village..."
-                />
-                {errors.farmer_id && <p className="text-[10px] text-destructive">{errors.farmer_id.message}</p>}
-              </div>
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-5 pt-3 min-h-0">
+            {/* Left Column: Form Controls */}
+            <div className="lg:col-span-5 xl:col-span-4 flex flex-col justify-between space-y-3 overflow-y-auto pr-1 h-full">
+              <div className="space-y-3.5">
+                {/* Farmer Searchable Select */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">Landowner / Farmer *</Label>
+                  <SearchableSelect
+                    options={farmerOptions}
+                    value={selectedFarmerId}
+                    onChange={(val) => {
+                      setValue('farmer_id', val);
+                      const selFarmer = farmers.find((f) => f.id === val);
+                      if (selFarmer) {
+                        setValue('village', selFarmer.village);
+                        setValue('district', selFarmer.district);
+                      }
+                    }}
+                    placeholder="Select Farmer..."
+                    searchPlaceholder="Search farmer name, village..."
+                  />
+                  {errors.farmer_id && <p className="text-[10px] text-destructive">{errors.farmer_id.message}</p>}
+                </div>
 
-              {/* Field Name */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Field Name / Plot Title *</Label>
-                <Input
-                  placeholder="e.g., North Tubewell Khasra #401"
-                  {...register('field_name')}
-                  className="text-xs"
-                />
-                {errors.field_name && <p className="text-[10px] text-destructive">{errors.field_name.message}</p>}
-              </div>
-            </div>
+                {/* Field Name */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">Field Name / Plot Title *</Label>
+                  <Input
+                    placeholder="e.g., North Tubewell Khasra #401"
+                    {...register('field_name')}
+                    className="text-xs h-9 bg-background"
+                  />
+                  {errors.field_name && <p className="text-[10px] text-destructive">{errors.field_name.message}</p>}
+                </div>
 
-            {/* Places Geocoding Autocomplete for Field */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold flex items-center justify-between">
-                <span>Auto-Locate Field Location (Places Geocoding API)</span>
-                <span className="text-[10px] text-emerald-600 font-normal">Centers Map & Fills Village</span>
-              </Label>
-              <AddressAutocomplete
-                value=""
-                onChange={() => {}}
-                onSelectPlace={(place) => {
-                  if (place.village) setValue('village', place.village);
-                  if (place.district) setValue('district', place.district);
-                  setLat(place.lat);
-                  setLng(place.lng);
-                  toast.success(`Map centered on: ${place.address}`);
-                }}
-                placeholder="Type village, tehsil, or district to center map..."
-              />
-            </div>
+                {/* Places Geocoding Autocomplete for Field */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground">Auto-Locate Field Location</Label>
+                    <span className="text-[10px] text-primary font-medium px-1.5 py-0.5 bg-primary/10 rounded-full">Places API</span>
+                  </div>
+                  <AddressAutocomplete
+                    value=""
+                    onChange={() => {}}
+                    onSelectPlace={(place) => {
+                      if (place.village) setValue('village', place.village);
+                      if (place.district) setValue('district', place.district);
+                      setLat(place.lat);
+                      setLng(place.lng);
+                      toast.success(`Map centered on: ${place.address}`);
+                    }}
+                    placeholder="Type village, tehsil, or district..."
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Area (Acres) *</Label>
-                <Input
-                  type="number"
-                  step="0.1"
-                  min="0.1"
-                  placeholder="5.0"
-                  {...register('area', { valueAsNumber: true })}
-                  className="text-xs"
-                />
-                {errors.area && <p className="text-[10px] text-destructive">{errors.area.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Crop Type *</Label>
-                <Input placeholder="Wheat" {...register('crop')} className="text-xs" />
-                {errors.crop && <p className="text-[10px] text-destructive">{errors.crop.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Cultivation Season</Label>
-                <Input placeholder="Rabi 2026-27" {...register('season')} className="text-xs" />
-              </div>
-            </div>
-
-            {/* Color Picker & Polygon Controls */}
-            <div className="p-3 bg-muted/40 rounded-xl border border-border/70 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-primary" />
-                  <Label className="text-xs font-semibold">Choose Custom Color:</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={selectedHexColor}
-                      onChange={(e) => {
-                        setSelectedHexColor(e.target.value);
-                        setValue('polygon_color', e.target.value);
-                      }}
-                      className="w-8 h-8 rounded-lg cursor-pointer border border-border p-0.5 bg-background hover:scale-105 transition-transform"
-                      title="Choose Custom Color"
+                {/* Area, Crop, Season in one row */}
+                <div className="grid grid-cols-3 gap-2.5 p-2.5 bg-muted/30 rounded-xl border border-border/60">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Area (Acres) *</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0.1"
+                      placeholder="5.0"
+                      {...register('area', { valueAsNumber: true })}
+                      className="text-xs h-8 bg-background"
                     />
-                    <span className="font-mono text-xs font-bold px-2.5 py-1 bg-background rounded-md border text-foreground shadow-xs">
-                      {selectedHexColor.toUpperCase()}
+                    {errors.area && <p className="text-[9px] text-destructive">{errors.area.message}</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Crop Type *</Label>
+                    <Input placeholder="Wheat" {...register('crop')} className="text-xs h-8 bg-background" />
+                    {errors.crop && <p className="text-[9px] text-destructive">{errors.crop.message}</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Season</Label>
+                    <Input placeholder="Rabi 2026-27" {...register('season')} className="text-xs h-8 bg-background" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t">
+                <Button type="button" variant="outline" size="sm" onClick={() => setAddModalOpen(false)} className="h-9 px-4 text-xs font-medium">
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" disabled={isCreating} className="h-9 px-5 text-xs font-semibold shadow-sm">
+                  {isCreating ? (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                      Registering...
+                    </>
+                  ) : (
+                    'Register Field Plot'
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Right Column: Map Controls (Top) + Interactive Map + GPS Footer */}
+            <div className="lg:col-span-7 xl:col-span-8 flex flex-col justify-between space-y-2 bg-muted/20 p-3 rounded-2xl border border-border/60 h-full min-h-0">
+              {/* Sleek Single-Line Toolbar at Top of Map */}
+              <div className="flex items-center justify-between gap-3 px-3 py-2 bg-background rounded-xl border border-border/70 shadow-xs">
+                {/* Color Picker & Swatches */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                    <Palette className="h-3.5 w-3.5 text-primary" />
+                    <span>Color:</span>
+                  </div>
+
+                  {/* Native Color Picker Swatch */}
+                  <div className="flex items-center gap-1.5 bg-muted/50 border border-border/80 rounded-md px-2 py-0.5">
+                    <label className="relative flex items-center justify-center cursor-pointer group">
+                      <input
+                        type="color"
+                        value={selectedHexColor}
+                        onChange={(e) => {
+                          const hex = e.target.value;
+                          setSelectedHexColor(hex);
+                          setValue('polygon_color', normalizeToColorEnum(hex));
+                        }}
+                        className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      />
+                      <div
+                        className="w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-800 shadow-xs ring-1 ring-border group-hover:scale-110 transition-transform"
+                        style={{ backgroundColor: selectedHexColor }}
+                      />
+                    </label>
+                    <span className="font-mono text-[11px] font-bold uppercase text-foreground">
+                      {selectedHexColor}
                     </span>
+                  </div>
+
+                  {/* Preset Swatches */}
+                  <div className="hidden sm:flex items-center gap-1">
+                    {[
+                      { hex: '#10b981', label: 'Green', val: 'GREEN' },
+                      { hex: '#f59e0b', label: 'Yellow', val: 'YELLOW' },
+                      { hex: '#ef4444', label: 'Red', val: 'RED' },
+                      { hex: '#3b82f6', label: 'Blue', val: 'BLUE' },
+                      { hex: '#8b5cf6', label: 'Purple', val: 'BLUE' },
+                      { hex: '#06b6d4', label: 'Cyan', val: 'BLUE' },
+                    ].map((swatch) => (
+                      <button
+                        key={swatch.hex}
+                        type="button"
+                        title={swatch.label}
+                        onClick={() => {
+                          setSelectedHexColor(swatch.hex);
+                          setValue('polygon_color', swatch.val as any);
+                        }}
+                        className={`w-3.5 h-3.5 rounded-full border transition-all cursor-pointer ${
+                          selectedHexColor.toLowerCase() === swatch.hex.toLowerCase()
+                            ? 'ring-2 ring-primary scale-125 border-white dark:border-black shadow-xs'
+                            : 'hover:scale-110 opacity-70 hover:opacity-100 border-transparent'
+                        }`}
+                        style={{ backgroundColor: swatch.hex }}
+                      />
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs font-semibold">Corner Points:</Label>
-                  <div className="flex bg-background border rounded-lg p-0.5 text-xs">
+                {/* Corner Points Selector */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-foreground">Corners:</span>
+                  <div className="flex bg-muted/60 p-0.5 rounded-lg border border-border/70 text-xs">
                     {([4, 6, 8] as const).map((cnt) => (
                       <button
                         key={cnt}
@@ -865,13 +997,13 @@ export default function LandParcelsPage() {
                           setAddPointsCount(cnt);
                           setAddCustomPolygon(undefined);
                         }}
-                        className={`px-2.5 py-1 rounded-md font-medium text-xs transition-colors ${
+                        className={`px-2 py-0.5 rounded-md font-semibold text-[11px] transition-all cursor-pointer ${
                           addPointsCount === cnt
-                            ? 'bg-primary text-primary-foreground font-bold'
+                            ? 'bg-background text-foreground shadow-xs font-bold border border-border/60'
                             : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
-                        {cnt}-Corners
+                        {cnt}
                       </button>
                     ))}
                   </div>
@@ -879,171 +1011,238 @@ export default function LandParcelsPage() {
               </div>
 
               {/* Dynamic Leaflet Interactive Map */}
-              <div className="pt-1">
-                <DynamicLocationPickerMap
-                  lat={lat}
-                  lng={lng}
-                  acreage={currentArea}
-                  polygonColor={selectedHexColor}
-                  pointsCount={addPointsCount}
-                  customPolygon={addCustomPolygon}
-                  onChange={(nLat, nLng) => {
-                    setLat(nLat);
-                    setLng(nLng);
-                  }}
-                  onPolygonChange={(pts) => {
-                    setAddCustomPolygon(pts);
-                  }}
-                  className="w-full h-[320px]"
-                />
-              </div>
+              <DynamicLocationPickerMap
+                lat={lat}
+                lng={lng}
+                acreage={currentArea}
+                polygonColor={selectedHexColor}
+                pointsCount={addPointsCount}
+                customPolygon={addCustomPolygon}
+                onChange={(nLat, nLng) => {
+                  setLat(nLat);
+                  setLng(nLng);
+                }}
+                onPolygonChange={(pts) => {
+                  setAddCustomPolygon(pts);
+                }}
+                className="w-full flex-1 min-h-[380px] lg:min-h-0 h-full rounded-xl shadow-inner"
+              />
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDetectLocation}
-                    className="h-7 text-xs gap-1.5"
-                  >
-                    <LocateFixed className="h-3.5 w-3.5 text-primary" />
-                    Detect Current GPS
-                  </Button>
-                </div>
-                <span className="font-mono text-[11px]">
-                  Center GPS: {lat.toFixed(4)}, {lng.toFixed(4)}
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pt-0.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDetectLocation}
+                  className="h-7 text-xs gap-1.5 rounded-lg"
+                >
+                  <LocateFixed className="h-3.5 w-3.5 text-primary" />
+                  Detect Current GPS
+                </Button>
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  Center GPS: <strong className="text-foreground">{lat.toFixed(4)}, {lng.toFixed(4)}</strong>
                 </span>
               </div>
             </div>
-
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setAddModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" size="sm" disabled={isCreating} className="font-semibold">
-                {isCreating ? (
-                  <>
-                    <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                    Registering Field...
-                  </>
-                ) : (
-                  'Register Field Plot'
-                )}
-              </Button>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* EDIT FIELD PLOT & POLYGON MODAL */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="sm:max-w-3xl max-h-[92vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold">Edit Field Plot & Polygon Boundary</DialogTitle>
-            <DialogDescription className="text-xs">
+        <DialogContent className="sm:max-w-5xl lg:max-w-6xl xl:max-w-7xl w-[96vw] max-h-[95vh] h-[92vh] overflow-hidden flex flex-col p-5 sm:p-6 rounded-2xl shadow-2xl">
+          <DialogHeader className="pb-2 border-b">
+            <DialogTitle className="text-xl font-bold tracking-tight">Edit Field Plot & Polygon Boundary</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
               Modify acreage, crop type, or drag/delete polygon vertices directly on the satellite map.
             </DialogDescription>
           </DialogHeader>
 
           {editingField && (
-            <form onSubmit={handleUpdateFieldSubmit} className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Landowner / Farmer *</Label>
-                  <SearchableSelect
-                    options={farmerOptions}
-                    value={editFarmerId}
-                    onChange={(val) => {
-                      setEditFarmerId(val);
-                      const selFarmer = farmers.find((f) => f.id === val);
-                      if (selFarmer) {
-                        setEditVillage(selFarmer.village);
-                        setEditDistrict(selFarmer.district);
-                      }
-                    }}
-                    placeholder="Select Farmer..."
-                  />
-                </div>
+            <form onSubmit={handleUpdateFieldSubmit} className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-5 pt-3 min-h-0">
+              {/* Left Column: Form Controls */}
+              <div className="lg:col-span-5 xl:col-span-4 flex flex-col justify-between space-y-3 overflow-y-auto pr-1 h-full">
+                <div className="space-y-3.5">
+                  {/* Farmer Searchable Select */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-foreground">Landowner / Farmer *</Label>
+                    <SearchableSelect
+                      options={farmerOptions}
+                      value={editFarmerId}
+                      onChange={(val) => {
+                        setEditFarmerId(val);
+                        const selFarmer = farmers.find((f) => f.id === val);
+                        if (selFarmer) {
+                          setEditVillage(selFarmer.village);
+                          setEditDistrict(selFarmer.district);
+                        }
+                      }}
+                      placeholder="Select Farmer..."
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Field Name *</Label>
-                  <Input
-                    value={editFieldName}
-                    onChange={(e) => setEditFieldName(e.target.value)}
-                    required
-                    className="text-xs"
-                  />
-                </div>
-              </div>
+                  {/* Field Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-foreground">Field Name *</Label>
+                    <Input
+                      value={editFieldName}
+                      onChange={(e) => setEditFieldName(e.target.value)}
+                      required
+                      className="text-xs h-9 bg-background"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Area (Acres) *</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.1"
-                    value={editArea}
-                    onChange={(e) => setEditArea(parseFloat(e.target.value) || 1.0)}
-                    required
-                    className="text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Crop Type *</Label>
-                  <Input
-                    value={editCrop}
-                    onChange={(e) => setEditCrop(e.target.value)}
-                    required
-                    className="text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Status *</Label>
-                  <Select
-                    value={editStatus}
-                    onValueChange={(v) => {
-                      if (v) setEditStatus(v as any);
-                    }}
-                  >
-                    <SelectTrigger className="w-full text-xs h-9">
-                      <SelectValue>{editStatus}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                      <SelectItem value="INACTIVE">INACTIVE</SelectItem>
-                      <SelectItem value="HARVESTED">HARVESTED</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Polygon Map & Color Picker in Edit Modal */}
-              <div className="p-3 bg-muted/40 rounded-xl border border-border/70 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Palette className="h-4 w-4 text-primary" />
-                    <Label className="text-xs font-semibold">Choose Custom Color:</Label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={editColor}
-                        onChange={(e) => setEditColor(e.target.value)}
-                        className="w-8 h-8 rounded-lg cursor-pointer border border-border p-0.5 bg-background hover:scale-105 transition-transform"
-                        title="Choose Custom Color"
+                  {/* Village & District in one row */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-foreground">Village / Chak</Label>
+                      <Input
+                        value={editVillage}
+                        onChange={(e) => setEditVillage(e.target.value)}
+                        className="text-xs h-8 bg-background"
                       />
-                      <span className="font-mono text-xs font-bold px-2.5 py-1 bg-background rounded-md border text-foreground shadow-xs">
-                        {editColor.toUpperCase()}
-                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold text-foreground">District</Label>
+                      <Input
+                        value={editDistrict}
+                        onChange={(e) => setEditDistrict(e.target.value)}
+                        className="text-xs h-8 bg-background"
+                      />
                     </div>
                   </div>
 
+                  {/* Area, Crop, Status in one row */}
+                  <div className="grid grid-cols-3 gap-2.5 p-2.5 bg-muted/30 rounded-xl border border-border/60">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">Area (Acres) *</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        value={editArea}
+                        onChange={(e) => setEditArea(parseFloat(e.target.value) || 1.0)}
+                        required
+                        className="text-xs h-8 bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">Crop Type *</Label>
+                      <Input
+                        value={editCrop}
+                        onChange={(e) => setEditCrop(e.target.value)}
+                        required
+                        className="text-xs h-8 bg-background"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[11px] font-semibold">Status *</Label>
+                      <Select
+                        value={editStatus}
+                        onValueChange={(v) => {
+                          if (v) setEditStatus(v as any);
+                        }}
+                      >
+                        <SelectTrigger className="w-full text-xs h-8 bg-background">
+                          <SelectValue>{editStatus}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="ACTIVE">ACTIVE</SelectItem>
+                          <SelectItem value="INACTIVE">INACTIVE</SelectItem>
+                          <SelectItem value="HARVESTED">HARVESTED</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setEditModalOpen(false)} className="h-9 px-4 text-xs font-medium">
+                    Cancel
+                  </Button>
+                  <Button type="submit" size="sm" disabled={isUpdating} className="h-9 px-5 text-xs font-semibold shadow-sm">
+                    {isUpdating ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                        Updating...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Right Column: Map Controls (Top) + Interactive Map */}
+              <div className="lg:col-span-7 xl:col-span-8 flex flex-col justify-between space-y-2 bg-muted/20 p-3 rounded-2xl border border-border/60 h-full min-h-0">
+                {/* Sleek Single-Line Toolbar at Top of Map */}
+                <div className="flex items-center justify-between gap-3 px-3 py-2 bg-background rounded-xl border border-border/70 shadow-xs">
+                  {/* Color Picker & Swatches */}
                   <div className="flex items-center gap-2">
-                    <Label className="text-xs font-semibold">Corner Points:</Label>
-                    <div className="flex bg-background border rounded-lg p-0.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <Palette className="h-3.5 w-3.5 text-primary" />
+                      <span>Color:</span>
+                    </div>
+
+                    {/* Native Color Picker Swatch */}
+                    <div className="flex items-center gap-1.5 bg-muted/50 border border-border/80 rounded-md px-2 py-0.5">
+                      <label className="relative flex items-center justify-center cursor-pointer group">
+                        <input
+                          type="color"
+                          value={editHexColor}
+                          onChange={(e) => {
+                            const hex = e.target.value;
+                            setEditHexColor(hex);
+                            setEditColor(normalizeToColorEnum(hex));
+                          }}
+                          className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                        />
+                        <div
+                          className="w-3.5 h-3.5 rounded-full border-2 border-white dark:border-zinc-800 shadow-xs ring-1 ring-border group-hover:scale-110 transition-transform"
+                          style={{ backgroundColor: editHexColor }}
+                        />
+                      </label>
+                      <span className="font-mono text-[11px] font-bold uppercase text-foreground">
+                        {editHexColor}
+                      </span>
+                    </div>
+
+                    {/* Preset Swatches */}
+                    <div className="hidden sm:flex items-center gap-1">
+                      {[
+                        { hex: '#10b981', label: 'Green', val: 'GREEN' },
+                        { hex: '#f59e0b', label: 'Yellow', val: 'YELLOW' },
+                        { hex: '#ef4444', label: 'Red', val: 'RED' },
+                        { hex: '#3b82f6', label: 'Blue', val: 'BLUE' },
+                        { hex: '#8b5cf6', label: 'Purple', val: 'BLUE' },
+                        { hex: '#06b6d4', label: 'Cyan', val: 'BLUE' },
+                      ].map((swatch) => (
+                        <button
+                          key={swatch.hex}
+                          type="button"
+                          title={swatch.label}
+                          onClick={() => {
+                            setEditHexColor(swatch.hex);
+                            setEditColor(swatch.val as any);
+                          }}
+                          className={`w-3.5 h-3.5 rounded-full border transition-all cursor-pointer ${
+                            editHexColor.toLowerCase() === swatch.hex.toLowerCase()
+                              ? 'ring-2 ring-primary scale-125 border-white dark:border-black shadow-xs'
+                            : 'hover:scale-110 opacity-70 hover:opacity-100 border-transparent'
+                          }`}
+                          style={{ backgroundColor: swatch.hex }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Corner Points Selector */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-foreground">Corners:</span>
+                    <div className="flex bg-muted/60 p-0.5 rounded-lg border border-border/70 text-xs">
                       {([4, 6, 8] as const).map((cnt) => (
                         <button
                           key={cnt}
@@ -1052,54 +1251,53 @@ export default function LandParcelsPage() {
                             setEditPointsCount(cnt);
                             setEditCustomPolygon(undefined);
                           }}
-                          className={`px-2.5 py-1 rounded-md font-medium text-xs transition-colors ${
+                          className={`px-2 py-0.5 rounded-md font-semibold text-[11px] transition-all cursor-pointer ${
                             editPointsCount === cnt
-                              ? 'bg-primary text-primary-foreground font-bold'
+                              ? 'bg-background text-foreground shadow-xs font-bold border border-border/60'
                               : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
-                          {cnt}-Corners
+                          {cnt}
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-1">
-                  <DynamicLocationPickerMap
-                    lat={editLat}
-                    lng={editLng}
-                    acreage={editArea}
-                    polygonColor={editColor}
-                    pointsCount={editPointsCount}
-                    customPolygon={editCustomPolygon}
-                    onChange={(nLat, nLng) => {
-                      setEditLat(nLat);
-                      setEditLng(nLng);
-                    }}
-                    onPolygonChange={(pts) => {
-                      setEditCustomPolygon(pts);
-                    }}
-                    className="w-full h-[320px]"
-                  />
+                {/* Leaflet Map */}
+                <DynamicLocationPickerMap
+                  lat={editLat}
+                  lng={editLng}
+                  acreage={editArea}
+                  polygonColor={editHexColor}
+                  pointsCount={editPointsCount}
+                  customPolygon={editCustomPolygon}
+                  onChange={(nLat, nLng) => {
+                    setEditLat(nLat);
+                    setEditLng(nLng);
+                  }}
+                  onPolygonChange={(pts) => {
+                    setEditCustomPolygon(pts);
+                  }}
+                  className="w-full flex-1 min-h-[380px] lg:min-h-0 h-full rounded-xl shadow-inner"
+                />
+
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pt-0.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDetectLocationEdit}
+                    className="h-7 text-xs gap-1.5 rounded-lg"
+                  >
+                    <LocateFixed className="h-3.5 w-3.5 text-primary" />
+                    Detect Current GPS
+                  </Button>
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    Center GPS: <strong className="text-foreground">{editLat.toFixed(4)}, {editLng.toFixed(4)}</strong>
+                  </span>
                 </div>
               </div>
-
-              <DialogFooter className="pt-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setEditModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" size="sm" disabled={isUpdating} className="font-semibold">
-                  {isUpdating ? (
-                    <>
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                      Updating...
-                    </>
-                  ) : (
-                    'Save Field Changes'
-                  )}
-                </Button>
-              </DialogFooter>
             </form>
           )}
         </DialogContent>

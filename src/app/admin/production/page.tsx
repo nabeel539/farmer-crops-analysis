@@ -7,6 +7,7 @@ import { SearchFilterBar } from '@/components/shared/SearchFilterBar';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { MetricCard } from '@/components/shared/MetricCard';
+import DataTablePagination, { ViewMode } from '@/components/shared/DataTablePagination';
 import {
   addBatch,
   setBatchSearchQuery,
@@ -61,6 +62,9 @@ export default function ProductionPage() {
   );
 
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Form State
   const [inputWheatKg, setInputWheatKg] = useState<number>(50000);
@@ -213,6 +217,8 @@ export default function ProductionPage() {
         searchQuery={searchQuery}
         onSearchChange={(q) => dispatch(setBatchSearchQuery(q))}
         searchPlaceholder="Search batch number, silo ID, supervisor..."
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         filters={[
           {
             id: 'status',
@@ -233,7 +239,7 @@ export default function ProductionPage() {
         }}
       />
 
-      {/* Batches Table */}
+      {/* Batches Table / Cards */}
       {filteredBatches.length === 0 ? (
         <EmptyState
           title="No Milling Batches Found"
@@ -245,66 +251,130 @@ export default function ProductionPage() {
           }}
         />
       ) : (
-        <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
-                <TableHead className="font-bold">Batch ID / Process Date</TableHead>
-                <TableHead className="font-bold text-right">Wheat Input (kg)</TableHead>
-                <TableHead className="font-bold text-right">Fine Atta Output</TableHead>
-                <TableHead className="font-bold text-right">Suji / Semolina</TableHead>
-                <TableHead className="font-bold text-right">Bran (Choker)</TableHead>
-                <TableHead className="font-bold text-center">Extraction %</TableHead>
-                <TableHead className="font-bold">Storage Silo</TableHead>
-                <TableHead className="font-bold">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredBatches.map((batch) => (
-                <TableRow key={batch.id} className="hover:bg-muted/30 text-xs">
-                  <TableCell>
-                    <div className="font-mono font-bold text-foreground">{batch.batchNumber}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      Processed: {batch.processedDate} &bull; {batch.supervisorName}
-                    </div>
-                  </TableCell>
+        <div className="space-y-4">
+          {viewMode === 'table' ? (
+            <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
+                    <TableHead className="font-bold">Batch ID / Process Date</TableHead>
+                    <TableHead className="font-bold text-right">Wheat Input (kg)</TableHead>
+                    <TableHead className="font-bold text-right">Fine Atta Output</TableHead>
+                    <TableHead className="font-bold text-right">Suji / Semolina</TableHead>
+                    <TableHead className="font-bold text-right">Bran (Choker)</TableHead>
+                    <TableHead className="font-bold text-center">Extraction %</TableHead>
+                    <TableHead className="font-bold">Storage Silo</TableHead>
+                    <TableHead className="font-bold">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredBatches
+                    .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                    .map((batch) => (
+                      <TableRow key={batch.id} className="hover:bg-muted/30 text-xs">
+                        <TableCell>
+                          <div className="font-mono font-bold text-foreground">{batch.batchNumber}</div>
+                          <div className="text-[11px] text-muted-foreground">
+                            Processed: {batch.processedDate} &bull; {batch.supervisorName}
+                          </div>
+                        </TableCell>
 
-                  <TableCell className="text-right font-mono font-bold text-foreground">
-                    {batch.totalInputWheatKg.toLocaleString()} kg
-                  </TableCell>
+                        <TableCell className="text-right font-mono font-bold text-foreground">
+                          {batch.totalInputWheatKg.toLocaleString()} kg
+                        </TableCell>
 
-                  <TableCell className="text-right font-mono text-emerald-600 font-semibold">
-                    {batch.fineAttaYieldKg.toLocaleString()} kg
-                  </TableCell>
+                        <TableCell className="text-right font-mono text-emerald-600 font-semibold">
+                          {batch.fineAttaYieldKg.toLocaleString()} kg
+                        </TableCell>
 
-                  <TableCell className="text-right font-mono text-foreground">
-                    {batch.semolinaSujiYieldKg.toLocaleString()} kg
-                  </TableCell>
+                        <TableCell className="text-right font-mono text-foreground">
+                          {batch.semolinaSujiYieldKg.toLocaleString()} kg
+                        </TableCell>
 
-                  <TableCell className="text-right font-mono text-amber-600">
-                    {batch.branYieldKg.toLocaleString()} kg
-                  </TableCell>
+                        <TableCell className="text-right font-mono text-amber-600">
+                          {batch.branYieldKg.toLocaleString()} kg
+                        </TableCell>
 
-                  <TableCell className="text-center">
-                    <span className="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">
-                      {batch.extractionRatePct}%
-                    </span>
-                    <span className="text-[10px] text-muted-foreground block">
-                      Score: {batch.qualityTestScore}
-                    </span>
-                  </TableCell>
+                        <TableCell className="text-center">
+                          <span className="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">
+                            {batch.extractionRatePct}%
+                          </span>
+                          <span className="text-[10px] text-muted-foreground block">
+                            Score: {batch.qualityTestScore}
+                          </span>
+                        </TableCell>
 
-                  <TableCell>
-                    <div className="font-medium text-foreground">{batch.storageSiloId}</div>
-                  </TableCell>
+                        <TableCell>
+                          <div className="font-medium text-foreground">{batch.storageSiloId}</div>
+                        </TableCell>
 
-                  <TableCell>
-                    <StatusBadge status={batch.batchStatus} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        <TableCell>
+                          <StatusBadge status={batch.batchStatus} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredBatches
+                .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                .map((batch) => (
+                  <Card key={batch.id} className="border shadow-xs hover:border-primary/40 transition-colors">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-mono font-bold text-primary">{batch.batchNumber}</span>
+                          <CardTitle className="text-sm font-semibold mt-0.5">{batch.storageSiloId}</CardTitle>
+                        </div>
+                        <StatusBadge status={batch.batchStatus} />
+                      </div>
+                      <CardDescription className="text-xs">
+                        Processed: {batch.processedDate} &bull; {batch.supervisorName}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 pt-0">
+                      <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-muted/40 text-xs">
+                        <div>
+                          <div className="text-muted-foreground text-[10px] uppercase font-semibold">Wheat Input</div>
+                          <div className="font-mono font-bold text-foreground">{batch.totalInputWheatKg.toLocaleString()} kg</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground text-[10px] uppercase font-semibold">Fine Atta</div>
+                          <div className="font-mono font-bold text-emerald-600">{batch.fineAttaYieldKg.toLocaleString()} kg</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground text-[10px] uppercase font-semibold">Suji / Semolina</div>
+                          <div className="font-mono font-medium text-foreground">{batch.semolinaSujiYieldKg.toLocaleString()} kg</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground text-[10px] uppercase font-semibold">Wheat Bran</div>
+                          <div className="font-mono font-medium text-amber-600">{batch.branYieldKg.toLocaleString()} kg</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-1 border-t">
+                        <span className="text-muted-foreground">Extraction Rate:</span>
+                        <span className="font-mono font-bold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px]">
+                          {batch.extractionRatePct}% (Score: {batch.qualityTestScore})
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          )}
+
+          <DataTablePagination
+            totalItems={filteredBatches.length}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
         </div>
       )}
 
@@ -324,8 +394,9 @@ export default function ProductionPage() {
               <Input
                 type="number"
                 step="1000"
-                value={inputWheatKg}
-                onChange={(e) => setInputWheatKg(parseFloat(e.target.value) || 0)}
+                value={inputWheatKg === 0 ? '' : inputWheatKg}
+                onChange={(e) => setInputWheatKg(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                placeholder="e.g. 50000"
                 required
               />
             </div>

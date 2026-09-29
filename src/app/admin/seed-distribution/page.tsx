@@ -64,16 +64,16 @@ import {
   Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  MOCK_FARMERS,
-  MOCK_LAND_PARCELS,
-} from '@/data/mockData';
+import { getErrorMessage } from '@/lib/utils';
 
 const allocationSchema = z.object({
   seed_batch_id: z.string().min(1, 'Please select a seed batch from warehouse inventory'),
   farmer_id: z.string().min(1, 'Please select a registered farmer'),
   field_id: z.string().min(1, 'Please select a field plot belonging to the farmer'),
-  quantity: z.number().positive('Allocation quantity must be greater than 0'),
+  quantity: z.preprocess(
+    (val) => (val === '' || val === undefined || val === null ? undefined : Number(val)),
+    z.number({ required_error: 'Allocation quantity must be greater than 0', invalid_type_error: 'Allocation quantity must be greater than 0' }).positive('Allocation quantity must be greater than 0')
+  ),
   remarks: z.string().optional(),
 });
 
@@ -122,21 +122,8 @@ export default function SeedDistributionPage() {
   const [createAllocation, { isLoading: isCreatingAlloc }] = useCreateAllocationMutation();
   const [createSeedSupply, { isLoading: isCreatingSupply }] = useCreateSeedSupplyMutation();
 
-  const farmers = apiFarmers.length > 0 ? apiFarmers : MOCK_FARMERS.map((f) => ({
-    id: f.id,
-    name: f.fullName,
-    mobile_number: f.mobile,
-    village: f.village,
-    district: f.district,
-  }));
-
-  const fields = apiFields.length > 0 ? apiFields : MOCK_LAND_PARCELS.map((p) => ({
-    id: p.id,
-    farmer_id: p.farmerId,
-    field_name: p.parcelCode,
-    area: p.totalAcreage,
-    crop: 'Wheat',
-  }));
+  const farmers = apiFarmers;
+  const fields = apiFields;
 
   const vendors = apiVendors;
 
@@ -195,6 +182,20 @@ export default function SeedDistributionPage() {
 
   const selectedVendorId = watchSupply('vendor_id');
 
+  const handleOpenAddAllocationModal = () => {
+    const firstAvailableBatch = batches.find((b) => b.available_quantity > 0);
+    const initialBatchId = firstAvailableBatch?.id || '';
+    const initialQty = firstAvailableBatch ? Math.min(50, firstAvailableBatch.available_quantity) : 0;
+    resetAlloc({
+      seed_batch_id: initialBatchId,
+      farmer_id: '',
+      field_id: '',
+      quantity: initialQty,
+      remarks: '',
+    });
+    setAddAllocationModalOpen(true);
+  };
+
   const onInvalidAlloc = (errors: any) => {
     const errorMessages = Object.values(errors)
       .map((err: any) => err?.message)
@@ -207,23 +208,39 @@ export default function SeedDistributionPage() {
   };
 
   const onAllocationSubmit = async (values: AllocationFormValues) => {
+    const batch = batches.find((b) => b.id === values.seed_batch_id);
+    if (!batch) {
+      toast.error('Please select a valid seed batch from warehouse inventory.');
+      return;
+    }
+    if (batch.available_quantity <= 0) {
+      toast.error(`Selected batch "${batch.batch_number}" is out of stock!`);
+      return;
+    }
+    if (values.quantity > batch.available_quantity) {
+      toast.error(
+        `Cannot allot ${values.quantity} ${batch.unit || 'KG'}. Only ${batch.available_quantity} ${batch.unit || 'KG'} is available in batch "${batch.batch_number}".`
+      );
+      return;
+    }
+
     try {
       await createAllocation({
         seed_batch_id: values.seed_batch_id,
         farmer_id: values.farmer_id,
         field_id: values.field_id,
         quantity: values.quantity,
-        unit: currentBatch?.unit || 'KG',
+        unit: batch.unit || 'KG',
         allocation_date: new Date().toISOString().split('T')[0],
         remarks: values.remarks,
       }).unwrap();
 
       const farmerName = farmers.find((f) => f.id === values.farmer_id)?.name || 'Farmer';
-      toast.success(`Allocated ${values.quantity} ${currentBatch?.unit || 'KG'} to ${farmerName}!`);
+      toast.success(`Allocated ${values.quantity} ${batch.unit || 'KG'} to ${farmerName}!`);
       setAddAllocationModalOpen(false);
       resetAlloc();
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Allocation failed. Please verify stock availability.');
+      toast.error(getErrorMessage(err, 'Allocation failed. Please verify stock availability.'));
     }
   };
 
@@ -245,7 +262,7 @@ export default function SeedDistributionPage() {
       setAddSupplyModalOpen(false);
       resetSupply();
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to record seed supply');
+      toast.error(getErrorMessage(err, 'Failed to record seed supply'));
     }
   };
 
@@ -328,7 +345,7 @@ export default function SeedDistributionPage() {
         actionButton={{
           label: 'Distribute Seed to Farmer',
           icon: Sprout,
-          onClick: () => setAddAllocationModalOpen(true),
+          onClick: handleOpenAddAllocationModal,
         }}
       >
         <Button
@@ -394,13 +411,15 @@ export default function SeedDistributionPage() {
               setSupplyPage(1);
             }}
             searchPlaceholder="Search farmer, plot, batch..."
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
             filters={[]}
             onReset={() => {
               setSearchQuery('');
               setAllocPage(1);
               setSupplyPage(1);
             }}
-            className="w-full sm:w-72"
+            className="w-full sm:w-auto"
           />
         </div>
 
@@ -433,6 +452,7 @@ export default function SeedDistributionPage() {
                       <TableHead className="font-bold">Slip No.</TableHead>
                       <TableHead className="font-bold">Farmer Recipient</TableHead>
                       <TableHead className="font-bold">Target Field Plot</TableHead>
+                      <TableHead className="font-bold">Seed Variety</TableHead>
                       <TableHead className="font-bold">Batch Number</TableHead>
                       <TableHead className="font-bold text-right">Quantity</TableHead>
                       <TableHead className="font-bold">Date</TableHead>
@@ -444,6 +464,7 @@ export default function SeedDistributionPage() {
                       const farmer = farmers.find((f) => f.id === alloc.farmer_id);
                       const field = fields.find((f) => f.id === alloc.field_id);
                       const batch = batches.find((b) => b.id === alloc.seed_batch_id);
+                      const supply = supplies.find((s) => s.id === batch?.supply_id);
 
                       return (
                         <TableRow key={alloc.id} className="hover:bg-muted/30 text-xs">
@@ -469,6 +490,12 @@ export default function SeedDistributionPage() {
                             <div className="text-[11px] text-muted-foreground">
                               {field ? `${field.area} Acres` : ''}
                             </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <Badge variant="outline" className="font-semibold text-[11px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+                              🌾 {supply?.variety || 'HD-2967'}
+                            </Badge>
                           </TableCell>
 
                           <TableCell>
@@ -580,47 +607,131 @@ export default function SeedDistributionPage() {
           )}
         </TabsContent>
 
-        {/* TAB 2: INVENTORY BATCHES */}
+        {/* TAB 2: INVENTORY BATCHES & VARIETY STOCK BALANCE */}
         <TabsContent value="inventory" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {batches.map((b) => (
-              <Card key={b.id} className="border shadow-2xs hover:border-border transition-colors">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="font-mono text-[11px] bg-primary/10 text-primary border-primary/30">
-                      {b.batch_number}
-                    </Badge>
-                    <Badge variant={b.available_quantity > 0 ? 'default' : 'secondary'} className="text-[10px]">
-                      {b.available_quantity > 0 ? 'IN STOCK' : 'EXHAUSTED'}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-base font-bold pt-1">
-                    {b.available_quantity.toLocaleString()} {b.unit} Available
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-xs">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-muted-foreground text-[11px]">
-                      <span>Allocated / Dispatched</span>
-                      <span className="font-mono">{b.allocated_quantity} {b.unit}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all"
-                        style={{
-                          width: `${Math.min(100, (b.allocated_quantity / b.received_quantity) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
+          {/* Variety-wise Stock Balance Summary */}
+          {(() => {
+            const varietyStockSummary = batches.reduce((acc, b) => {
+              const supply = supplies.find((s) => s.id === b.supply_id);
+              const varName = supply?.variety || 'HD-2967';
+              if (!acc[varName]) {
+                acc[varName] = { variety: varName, available: 0, received: 0, allocated: 0, unit: b.unit || 'KG' };
+              }
+              acc[varName].available += b.available_quantity;
+              acc[varName].received += b.received_quantity;
+              acc[varName].allocated += b.allocated_quantity;
+              return acc;
+            }, {} as Record<string, { variety: string; available: number; received: number; allocated: number; unit: string }>);
 
-                  <div className="pt-2 border-t flex items-center justify-between text-[11px] text-muted-foreground font-mono">
-                    <span>Received: {b.received_quantity} {b.unit}</span>
-                    <span>Created: {b.created_at ? b.created_at.split('T')[0] : 'N/A'}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            const varietyList = Object.values(varietyStockSummary);
+
+            if (varietyList.length === 0) return null;
+
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Sprout className="h-3.5 w-3.5 text-emerald-600" />
+                    Remaining Stock by Seed Variety (किस्म अनुसार शेष स्टॉक)
+                  </h4>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    {varietyList.length} Active Varieties
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {varietyList.map((item) => {
+                    const availPct = item.received > 0 ? Math.round((item.available / item.received) * 100) : 0;
+                    return (
+                      <Card key={item.variety} className="border bg-card/60 shadow-2xs hover:border-primary/40 transition-all">
+                        <CardContent className="p-3.5 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-foreground">🌾 {item.variety}</span>
+                            <Badge 
+                              variant={item.available > 0 ? 'outline' : 'secondary'} 
+                              className={`text-[10px] font-semibold ${item.available > 0 ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' : 'text-rose-600'}`}
+                            >
+                              {item.available > 0 ? `${availPct}% Left` : 'Out of Stock'}
+                            </Badge>
+                          </div>
+                          <div>
+                            <div className="text-lg font-black text-foreground font-mono">
+                              {item.available.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">{item.unit}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex justify-between pt-0.5">
+                              <span>Dispatched: {item.allocated.toLocaleString()} {item.unit}</span>
+                              <span>Total: {item.received.toLocaleString()} {item.unit}</span>
+                            </div>
+                          </div>
+                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${item.available > 0 ? 'bg-emerald-500' : 'bg-rose-500'} transition-all`}
+                              style={{ width: `${Math.min(100, Math.max(5, availPct))}%` }}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="pt-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              Certified Batch Inventory Cards ({batches.length})
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {batches.map((b) => {
+                const supply = supplies.find((s) => s.id === b.supply_id);
+                const variety = supply?.variety || 'HD-2967';
+
+                return (
+                  <Card key={b.id} className="border shadow-2xs hover:border-border transition-colors">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className="font-mono text-[11px] bg-primary/10 text-primary border-primary/30">
+                          {b.batch_number}
+                        </Badge>
+                        <Badge variant={b.available_quantity > 0 ? 'default' : 'secondary'} className="text-[10px]">
+                          {b.available_quantity > 0 ? 'IN STOCK' : 'EXHAUSTED'}
+                        </Badge>
+                      </div>
+                      <div className="pt-1 flex items-center justify-between">
+                        <CardTitle className="text-base font-bold">
+                          {b.available_quantity.toLocaleString()} {b.unit} Left
+                        </CardTitle>
+                        <Badge variant="outline" className="text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+                          🌾 {variety}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-xs">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-muted-foreground text-[11px]">
+                          <span>Allocated to Farmers</span>
+                          <span className="font-mono">{b.allocated_quantity} {b.unit}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all"
+                            style={{
+                              width: `${Math.min(100, (b.allocated_quantity / b.received_quantity) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                        <span>Total Received: {b.received_quantity} {b.unit}</span>
+                        <span>Created: {b.created_at ? b.created_at.split('T')[0] : 'N/A'}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
         </TabsContent>
 
@@ -641,53 +752,94 @@ export default function SeedDistributionPage() {
             />
           ) : (
             <div className="border rounded-lg bg-card overflow-hidden shadow-xs">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
-                    <TableHead className="font-bold">Vendor Organization</TableHead>
-                    <TableHead className="font-bold">Crop & Variety</TableHead>
-                    <TableHead className="font-bold">PO / Invoice Ref</TableHead>
-                    <TableHead className="font-bold">Delivery Date</TableHead>
-                    <TableHead className="font-bold">Remarks</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              {viewMode === 'table' ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-transparent text-xs">
+                      <TableHead className="font-bold">Vendor Organization</TableHead>
+                      <TableHead className="font-bold">Crop & Variety</TableHead>
+                      <TableHead className="font-bold">PO / Invoice Ref</TableHead>
+                      <TableHead className="font-bold">Delivery Date</TableHead>
+                      <TableHead className="font-bold">Remarks</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedSupplies.map((supply) => {
+                      const vendor = vendors.find((v) => v.id === supply.vendor_id);
+                      return (
+                        <TableRow key={supply.id} className="hover:bg-muted/30 text-xs">
+                          <TableCell>
+                            <div className="font-semibold text-foreground">
+                              {vendor ? vendor.company_name : 'Authorized Vendor'}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground font-medium">
+                              {vendor ? vendor.vendor_name : ''}
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="font-medium text-foreground">{supply.variety}</div>
+                            <div className="text-[11px] text-muted-foreground">{supply.crop}</div>
+                          </TableCell>
+
+                          <TableCell>
+                            <span className="font-mono text-[11px] text-muted-foreground">
+                              {supply.purchase_reference || 'N/A'}
+                            </span>
+                          </TableCell>
+
+                          <TableCell>
+                            <span className="font-mono text-[11px] text-muted-foreground">{supply.supply_date}</span>
+                          </TableCell>
+
+                          <TableCell>
+                            <span className="text-xs text-muted-foreground">{supply.remarks || 'Standard Delivery'}</span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {paginatedSupplies.map((supply) => {
                     const vendor = vendors.find((v) => v.id === supply.vendor_id);
                     return (
-                      <TableRow key={supply.id} className="hover:bg-muted/30 text-xs">
-                        <TableCell>
-                          <div className="font-semibold text-foreground">
-                            {vendor ? vendor.company_name : 'Authorized Vendor'}
+                      <Card key={supply.id} className="border hover:border-primary/40 transition-all shadow-xs">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-bold text-sm text-foreground">
+                                {vendor ? vendor.company_name : 'Authorized Vendor'}
+                              </h4>
+                              <p className="text-[11px] text-muted-foreground">{vendor?.vendor_name}</p>
+                            </div>
+                            <Badge variant="outline" className="text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
+                              🌾 {supply.variety}
+                            </Badge>
                           </div>
-                          <div className="text-[11px] text-muted-foreground font-medium">
-                            {vendor ? vendor.vendor_name : ''}
+
+                          <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t text-muted-foreground">
+                            <div>
+                              <span className="text-[10px] block font-semibold uppercase">Quantity</span>
+                              <span className="font-mono font-bold text-foreground">{supply.quantity} {supply.unit}</span>
+                            </div>
+                            <div>
+                              <span className="text-[10px] block font-semibold uppercase">PO / Ref</span>
+                              <span className="font-mono text-foreground">{supply.purchase_reference || 'N/A'}</span>
+                            </div>
                           </div>
-                        </TableCell>
 
-                        <TableCell>
-                          <div className="font-medium text-foreground">{supply.variety}</div>
-                          <div className="text-[11px] text-muted-foreground">{supply.crop}</div>
-                        </TableCell>
-
-                        <TableCell>
-                          <span className="font-mono text-[11px] text-muted-foreground">
-                            {supply.purchase_reference || 'N/A'}
-                          </span>
-                        </TableCell>
-
-                        <TableCell>
-                          <span className="font-mono text-[11px] text-muted-foreground">{supply.supply_date}</span>
-                        </TableCell>
-
-                        <TableCell>
-                          <span className="text-xs text-muted-foreground">{supply.remarks || 'Standard Delivery'}</span>
-                        </TableCell>
-                      </TableRow>
+                          <div className="pt-2 border-t flex items-center justify-between text-xs">
+                            <span className="text-[11px] text-muted-foreground font-mono">{supply.supply_date}</span>
+                            <span className="text-[11px] text-muted-foreground truncate max-w-[140px]">{supply.remarks || 'Standard Delivery'}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
                     );
                   })}
-                </TableBody>
-              </Table>
+                </div>
+              )}
 
               <DataTablePagination
                 currentPage={supplyPage}
@@ -696,7 +848,8 @@ export default function SeedDistributionPage() {
                 totalItems={totalSupplyItems}
                 onPageChange={setSupplyPage}
                 onPageSizeChange={setSupplyPageSize}
-                showViewToggle={false}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
               />
             </div>
           )}
@@ -716,11 +869,33 @@ export default function SeedDistributionPage() {
           <form onSubmit={handleSubmitAlloc(onAllocationSubmit, onInvalidAlloc)} className="space-y-4 pt-2">
             {/* Step 1: Batch */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">1. Select Seed Batch (Inventory Source) *</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">1. Select Seed Batch (Inventory Source) *</Label>
+                {currentBatch && (
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      currentBatch.available_quantity <= 5
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                    }`}
+                  >
+                    Stock: {currentBatch.available_quantity} {currentBatch.unit || 'KG'} Available
+                  </Badge>
+                )}
+              </div>
               <SearchableSelect
                 options={batchOptions}
                 value={selectedBatchId}
-                onChange={(val) => setValueAlloc('seed_batch_id', val)}
+                onChange={(val) => {
+                  setValueAlloc('seed_batch_id', val, { shouldValidate: true });
+                  const b = batches.find((x) => x.id === val);
+                  if (b) {
+                    if (requestedQuantity === 0 || requestedQuantity > b.available_quantity) {
+                      setValueAlloc('quantity', Math.min(50, b.available_quantity), { shouldValidate: true });
+                    }
+                  }
+                }}
                 placeholder="Choose in-stock batch..."
                 searchPlaceholder="Search batch number..."
               />
@@ -736,12 +911,12 @@ export default function SeedDistributionPage() {
                 options={farmerOptions}
                 value={selectedFarmerId}
                 onChange={(val) => {
-                  setValueAlloc('farmer_id', val);
+                  setValueAlloc('farmer_id', val, { shouldValidate: true });
                   const farmerPlot = fields.find((f) => f.farmer_id === val);
                   if (farmerPlot) {
-                    setValueAlloc('field_id', farmerPlot.id);
+                    setValueAlloc('field_id', farmerPlot.id, { shouldValidate: true });
                   } else {
-                    setValueAlloc('field_id', '');
+                    setValueAlloc('field_id', '', { shouldValidate: true });
                   }
                 }}
                 placeholder="Choose farmer recipient..."
@@ -763,7 +938,7 @@ export default function SeedDistributionPage() {
                 <SearchableSelect
                   options={fieldOptions}
                   value={selectedFieldId}
-                  onChange={(val) => setValueAlloc('field_id', val)}
+                  onChange={(val) => setValueAlloc('field_id', val, { shouldValidate: true })}
                   placeholder="Choose field plot..."
                   searchPlaceholder="Search field plot..."
                 />
@@ -775,18 +950,68 @@ export default function SeedDistributionPage() {
 
             {/* Quantity */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">4. Allotment Quantity (KG) *</Label>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold">
+                  4. Allotment Quantity ({currentBatch?.unit || 'KG'}) *
+                </Label>
+                {currentBatch && (
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-[11px] font-semibold ${
+                        currentBatch.available_quantity <= 5
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-emerald-600 dark:text-emerald-400'
+                      }`}
+                    >
+                      Max Available: {currentBatch.available_quantity} {currentBatch.unit || 'KG'}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setValueAlloc('quantity', currentBatch.available_quantity, { shouldValidate: true })
+                      }
+                      className="h-5 px-1.5 text-[10px] text-primary hover:bg-primary/10 cursor-pointer"
+                    >
+                      Fill Max
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <Input
                 type="number"
-                step="5"
-                min="1"
-                placeholder="50"
-                value={requestedQuantity}
-                onChange={(e) => setValueAlloc('quantity', parseFloat(e.target.value) || 0)}
-                className="text-xs"
+                step="any"
+                min="0.1"
+                max={currentBatch ? currentBatch.available_quantity : undefined}
+                placeholder={
+                  currentBatch
+                    ? `Enter quantity (1 - ${currentBatch.available_quantity} ${currentBatch.unit || 'KG'})`
+                    : 'Enter quantity in KG (e.g. 50)'
+                }
+                value={requestedQuantity === 0 ? '' : requestedQuantity}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setValueAlloc('quantity', val === '' ? ('' as any) : parseFloat(val), { shouldValidate: true });
+                }}
+                className={`text-xs ${
+                  currentBatch && requestedQuantity > currentBatch.available_quantity
+                    ? 'border-destructive focus-visible:ring-destructive text-destructive font-bold'
+                    : ''
+                }`}
               />
               {errorsAlloc.quantity && (
                 <p className="text-[10px] text-destructive">{errorsAlloc.quantity.message}</p>
+              )}
+              {currentBatch && requestedQuantity > currentBatch.available_quantity && (
+                <p className="text-[11px] text-destructive font-semibold flex items-center gap-1">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Stock limit exceeded! Is batch me sirf {currentBatch.available_quantity}{' '}
+                    {currentBatch.unit || 'KG'} available hai. Aap {requestedQuantity} KG allot nahi kar sakte.
+                  </span>
+                </p>
               )}
             </div>
 
@@ -794,7 +1019,12 @@ export default function SeedDistributionPage() {
               <Button type="button" variant="outline" size="sm" onClick={() => setAddAllocationModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" size="sm" disabled={isCreatingAlloc} className="font-semibold">
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isCreatingAlloc || (Boolean(currentBatch) && requestedQuantity > (currentBatch?.available_quantity || 0))}
+                className="font-semibold"
+              >
                 {isCreatingAlloc ? (
                   <>
                     <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />

@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { FieldActivity, ActivityType } from '@/types';
-import { MOCK_ACTIVITIES } from '@/data/mockData';
 
 interface ActivitiesState {
   activities: FieldActivity[];
@@ -11,7 +10,7 @@ interface ActivitiesState {
 }
 
 const initialState: ActivitiesState = {
-  activities: MOCK_ACTIVITIES,
+  activities: [],
   selectedActivityId: null,
   searchQuery: '',
   typeFilter: 'ALL',
@@ -22,6 +21,9 @@ export const activitiesSlice = createSlice({
   name: 'activities',
   initialState,
   reducers: {
+    setActivities: (state, action: PayloadAction<FieldActivity[]>) => {
+      state.activities = action.payload;
+    },
     addActivity: (state, action: PayloadAction<FieldActivity>) => {
       state.activities.unshift(action.payload);
     },
@@ -60,6 +62,7 @@ export const activitiesSlice = createSlice({
 });
 
 export const {
+  setActivities,
   addActivity,
   updateActivity,
   completeActivity,

@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { CropCycle, CropCycleStage, CropHealthStatus } from '@/types';
-import { MOCK_CROP_CYCLES } from '@/data/mockData';
 
 interface CropCyclesState {
   cycles: CropCycle[];
@@ -11,7 +10,7 @@ interface CropCyclesState {
 }
 
 const initialState: CropCyclesState = {
-  cycles: MOCK_CROP_CYCLES,
+  cycles: [],
   selectedCycleId: null,
   searchQuery: '',
   stageFilter: 'ALL',
@@ -22,6 +21,9 @@ export const cropCyclesSlice = createSlice({
   name: 'cropCycles',
   initialState,
   reducers: {
+    setCycles: (state, action: PayloadAction<CropCycle[]>) => {
+      state.cycles = action.payload;
+    },
     addCycle: (state, action: PayloadAction<CropCycle>) => {
       state.cycles.unshift(action.payload);
     },
@@ -62,6 +64,7 @@ export const cropCyclesSlice = createSlice({
 });
 
 export const {
+  setCycles,
   addCycle,
   updateCycle,
   updateCycleStage,

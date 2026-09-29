@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { LandParcel } from '@/types';
-import { MOCK_LAND_PARCELS } from '@/data/mockData';
 
 interface LandParcelsState {
   parcels: LandParcel[];
@@ -11,7 +10,7 @@ interface LandParcelsState {
 }
 
 const initialState: LandParcelsState = {
-  parcels: MOCK_LAND_PARCELS,
+  parcels: [],
   selectedParcelId: null,
   searchQuery: '',
   soilTypeFilter: 'ALL',
@@ -22,6 +21,9 @@ export const landParcelsSlice = createSlice({
   name: 'landParcels',
   initialState,
   reducers: {
+    setParcels: (state, action: PayloadAction<LandParcel[]>) => {
+      state.parcels = action.payload;
+    },
     addParcel: (state, action: PayloadAction<LandParcel>) => {
       state.parcels.unshift(action.payload);
     },
@@ -50,6 +52,7 @@ export const landParcelsSlice = createSlice({
 });
 
 export const {
+  setParcels,
   addParcel,
   updateParcel,
   deleteParcel,

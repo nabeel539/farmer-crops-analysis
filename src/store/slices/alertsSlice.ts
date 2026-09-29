@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { AgriAlert } from '@/types';
-import { MOCK_ALERTS } from '@/data/mockData';
 
 interface AlertsState {
   alerts: AgriAlert[];
@@ -8,7 +7,7 @@ interface AlertsState {
 }
 
 const initialState: AlertsState = {
-  alerts: MOCK_ALERTS,
+  alerts: [],
   severityFilter: 'ALL'
 };
 
@@ -16,6 +15,9 @@ export const alertsSlice = createSlice({
   name: 'alerts',
   initialState,
   reducers: {
+    setAlerts: (state, action: PayloadAction<AgriAlert[]>) => {
+      state.alerts = action.payload;
+    },
     addAlert: (state, action: PayloadAction<AgriAlert>) => {
       state.alerts.unshift(action.payload);
     },
@@ -35,6 +37,7 @@ export const alertsSlice = createSlice({
 });
 
 export const {
+  setAlerts,
   addAlert,
   resolveAlert,
   dismissAlert,

@@ -6,13 +6,17 @@ import { store } from '@/store/store';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 
+import { AuthInitializer } from './AuthInitializer';
+
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
-      <TooltipProvider delay={200}>
-        {children}
-        <Toaster position="top-right" richColors />
-      </TooltipProvider>
+      <AuthInitializer>
+        <TooltipProvider delay={200}>
+          {children}
+          <Toaster position="top-right" richColors />
+        </TooltipProvider>
+      </AuthInitializer>
     </Provider>
   );
 }

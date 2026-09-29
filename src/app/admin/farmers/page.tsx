@@ -1,19 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   useGetFarmersQuery,
   useCreateFarmerMutation,
   useUpdateFarmerMutation,
   useResetFarmerCredentialsMutation,
+  useDeleteFarmerMutation,
   Farmer as ApiFarmer,
 } from '@/store/api/farmerApi';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { SearchFilterBar } from '@/components/shared/SearchFilterBar';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import DataTablePagination, { ViewMode } from '@/components/shared/DataTablePagination';
 import AddressAutocomplete from '@/components/shared/AddressAutocomplete';
+import { PincodeQuickLookup } from '@/components/shared/PincodeQuickLookup';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +50,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -72,15 +76,18 @@ import {
   Sparkles,
   Share2,
   MessageSquare,
+  Mail,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/utils';
 
 const farmerSchema = z.object({
   name: z.string().min(2, 'Farmer name must be at least 2 characters'),
   mobile_number: z.string().min(10, 'Mobile number must be at least 10 digits'),
+  email: z.string().email('Please enter a valid email address').or(z.literal('')).optional(),
   village: z.string().min(2, 'Village name is mandatory'),
   block: z.string().optional(),
   district: z.string().min(2, 'District is mandatory'),
@@ -91,25 +98,23 @@ const farmerSchema = z.object({
 
 type FarmerFormValues = z.infer<typeof farmerSchema>;
 
-const DISTRICT_OPTIONS = [
-  { value: 'Ludhiana', label: 'Ludhiana', subLabel: 'Punjab' },
-  { value: 'Karnal', label: 'Karnal', subLabel: 'Haryana' },
-  { value: 'Patiala', label: 'Patiala', subLabel: 'Punjab' },
-  { value: 'Bathinda', label: 'Bathinda', subLabel: 'Punjab' },
-  { value: 'Meerut', label: 'Meerut', subLabel: 'Uttar Pradesh' },
-  { value: 'Indore', label: 'Indore', subLabel: 'Madhya Pradesh' },
-  { value: 'Ambala', label: 'Ambala', subLabel: 'Haryana' },
-  { value: 'Sirsa', label: 'Sirsa', subLabel: 'Haryana' },
-  { value: 'Sangrur', label: 'Sangrur', subLabel: 'Punjab' },
-];
+import {
+  getAllStateOptions,
+  getDistrictsForState,
+  getAllDistrictOptions,
+} from '@/data/indiaStatesDistricts';
+
+const STATE_OPTIONS = getAllStateOptions();
+const ALL_DISTRICT_OPTIONS = getAllDistrictOptions();
 
 export default function FarmersPage() {
   const { data: rawFarmers = [], isLoading, refetch } = useGetFarmersQuery(undefined, {
-    refetchOnMountOrArgChange: false,
+    refetchOnMountOrArgChange: true,
   });
   const [createFarmer, { isLoading: isCreating }] = useCreateFarmerMutation();
   const [updateFarmer, { isLoading: isUpdating }] = useUpdateFarmerMutation();
   const [resetFarmerCredentials, { isLoading: isResettingCreds }] = useResetFarmerCredentialsMutation();
+  const [deleteFarmer, { isLoading: isDeleting }] = useDeleteFarmerMutation();
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,6 +131,8 @@ export default function FarmersPage() {
   const [editingFarmer, setEditingFarmer] = useState<ApiFarmer | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [selectedFarmer, setSelectedFarmer] = useState<ApiFarmer | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [farmerToDelete, setFarmerToDelete] = useState<ApiFarmer | null>(null);
 
   // Reset Credentials Modal State
   const [resetModalOpen, setResetModalOpen] = useState(false);
@@ -134,6 +141,11 @@ export default function FarmersPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
+
+  // Manual Enrollment Credentials State (admin-set during enrollment)
+  const [manualUserId, setManualUserId] = useState('');
+  const [manualPassword, setManualPassword] = useState('');
+  const [showManualPassword, setShowManualPassword] = useState(false);
 
   // Credentials Generated / Updated Modal
   const [credentialsModalOpen, setCredentialsModalOpen] = useState(false);
@@ -156,6 +168,7 @@ export default function FarmersPage() {
     defaultValues: {
       name: '',
       mobile_number: '',
+      email: '',
       village: '',
       block: '',
       district: 'Karnal',
@@ -165,8 +178,30 @@ export default function FarmersPage() {
     },
   });
 
+  const selectedState = watch('state');
   const selectedDistrict = watch('district');
   const selectedStatus = watch('status');
+
+  const formDistrictOptions = useMemo(() => {
+    return getDistrictsForState(selectedState);
+  }, [selectedState]);
+
+  const filterDistrictOptions = useMemo(() => {
+    const presentDistricts = Array.from(new Set(rawFarmers.map((f) => f.district).filter(Boolean)));
+    const uniqueDistricts = Array.from(
+      new Set([...presentDistricts, ...ALL_DISTRICT_OPTIONS.map((d) => d.value)])
+    );
+    return [
+      { label: 'All Districts', value: 'ALL' },
+      ...uniqueDistricts.map((dist) => {
+        const found = ALL_DISTRICT_OPTIONS.find((d) => d.value === dist);
+        return {
+          label: found ? `${dist} (${found.subLabel})` : dist,
+          value: dist,
+        };
+      }),
+    ];
+  }, [rawFarmers]);
 
   // Filter Farmers
   const filteredFarmers = rawFarmers.filter((farmer) => {
@@ -174,6 +209,7 @@ export default function FarmersPage() {
     const matchesSearch =
       farmer.name.toLowerCase().includes(q) ||
       farmer.mobile_number.includes(q) ||
+      (farmer.email || '').toLowerCase().includes(q) ||
       farmer.village.toLowerCase().includes(q) ||
       farmer.district.toLowerCase().includes(q);
 
@@ -191,11 +227,21 @@ export default function FarmersPage() {
     currentPage * pageSize
   );
 
+  const handlePincodeLocationSelected = useCallback(
+    (loc: { state: string; district: string; pincode: string; selectedOffice?: string }) => {
+      if (loc.state) setValue('state', loc.state, { shouldValidate: true });
+      if (loc.district) setValue('district', loc.district, { shouldValidate: true });
+      if (loc.selectedOffice) setValue('village', loc.selectedOffice, { shouldValidate: true });
+    },
+    [setValue]
+  );
+
   const handleOpenAddModal = () => {
     setEditingFarmer(null);
     reset({
       name: '',
       mobile_number: '',
+      email: '',
       village: '',
       block: '',
       district: 'Karnal',
@@ -203,7 +249,18 @@ export default function FarmersPage() {
       address: '',
       status: 'ACTIVE',
     });
+    // Reset manual credentials to empty so admin fills them
+    setManualUserId('');
+    setManualPassword('');
+    setShowManualPassword(false);
     setIsModalOpen(true);
+  };
+
+  const handleEnrollAutoGeneratePassword = () => {
+    const randomPass = `Kisan@${Math.floor(1000 + Math.random() * 9000)}`;
+    setManualPassword(randomPass);
+    setShowManualPassword(true);
+    toast.success(`Generated password: ${randomPass}`);
   };
 
   const handleOpenEditModal = (farmer: ApiFarmer) => {
@@ -211,6 +268,7 @@ export default function FarmersPage() {
     reset({
       name: farmer.name,
       mobile_number: farmer.mobile_number,
+      email: farmer.email || '',
       village: farmer.village,
       block: farmer.block || '',
       district: farmer.district,
@@ -241,34 +299,51 @@ export default function FarmersPage() {
         }).unwrap();
         toast.success(`Farmer "${values.name}" profile updated successfully!`);
       } else {
-        const res = await createFarmer(values).unwrap();
-        
-        // Auto-generate Farmer Login Credentials
-        const tempPassword = `Kisan@${Math.floor(1000 + Math.random() * 9000)}`;
+        // Use admin-provided credentials; fall back to mobile number + auto password if blank
+        const finalUserId = manualUserId.trim() || values.mobile_number.trim();
+        const finalPassword = manualPassword.trim() || `Kisan@${Math.floor(1000 + Math.random() * 9000)}`;
         const credRecord = {
-          userId: values.mobile_number,
-          pass: tempPassword,
-          name: values.name,
-          village: values.village,
+          userId: finalUserId,
+          mobile: values.mobile_number.trim(),
+          email: values.email?.trim() || undefined,
+          pass: finalPassword,
+          name: values.name.trim(),
+          village: values.village.trim(),
         };
+
+        const res = await createFarmer({
+          ...values,
+          email: values.email || null,
+          login_user_id: finalUserId,
+          login_password: finalPassword,
+        }).unwrap();
 
         // Persist to local farmer credentials for login authentication
         try {
           const existing = JSON.parse(localStorage.getItem('registered_farmer_credentials') || '[]');
-          existing.push(credRecord);
-          localStorage.setItem('registered_farmer_credentials', JSON.stringify(existing));
+          const filtered = existing.filter(
+            (c: any) => c.userId !== finalUserId && c.mobile !== values.mobile_number.trim()
+          );
+          filtered.push(credRecord);
+          localStorage.setItem('registered_farmer_credentials', JSON.stringify(filtered));
         } catch (e) {
           console.error(e);
         }
 
-        setGeneratedCreds(credRecord);
+        setGeneratedCreds({
+          userId: finalUserId,
+          pass: finalPassword,
+          name: values.name.trim(),
+        });
         setCredentialsModalOpen(true);
         toast.success(`Farmer "${values.name}" enrolled successfully with login credentials!`);
       }
       setIsModalOpen(false);
       reset();
+      setManualUserId('');
+      setManualPassword('');
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to save farmer profile. Please try again.');
+      toast.error(getErrorMessage(err, 'Failed to save farmer profile. Please try again.'));
     }
   };
 
@@ -352,7 +427,7 @@ export default function FarmersPage() {
 
       toast.success(`Login credentials for "${farmerToReset.name}" updated successfully!`);
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to update credentials. Please try again.');
+      toast.error(getErrorMessage(err, 'Failed to update credentials. Please try again.'));
     }
   };
 
@@ -369,15 +444,48 @@ export default function FarmersPage() {
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
+  const handleOpenDeleteModal = (farmer: ApiFarmer) => {
+    setFarmerToDelete(farmer);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!farmerToDelete) return;
+    try {
+      await deleteFarmer(farmerToDelete.id).unwrap();
+
+      // Clean up localStorage credentials
+      try {
+        const existing = JSON.parse(localStorage.getItem('registered_farmer_credentials') || '[]');
+        const filtered = existing.filter((c: any) => c.userId !== farmerToDelete.mobile_number);
+        localStorage.setItem('registered_farmer_credentials', JSON.stringify(filtered));
+      } catch (e) {
+        console.error(e);
+      }
+
+      toast.success(`Farmer "${farmerToDelete.name}" and associated login account deleted successfully.`);
+      if (selectedFarmer?.id === farmerToDelete.id) {
+        setDetailSheetOpen(false);
+      }
+      refetch();
+    } catch (err: any) {
+      toast.error(getErrorMessage(err, 'Failed to delete farmer profile.'));
+    } finally {
+      setFarmerToDelete(null);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
   const handleExportCSV = () => {
     if (rawFarmers.length === 0) {
       toast.error('No farmer records to export');
       return;
     }
-    const headers = ['Farmer Name', 'Mobile', 'Village', 'Block', 'District', 'State', 'Status', 'Registered Date'];
+    const headers = ['Farmer Name', 'Mobile', 'Email', 'Village', 'Block', 'District', 'State', 'Status', 'Registered Date'];
     const rows = rawFarmers.map((f) => [
       f.name,
       f.mobile_number,
+      f.email || '',
       f.village,
       f.block || '',
       f.district,
@@ -431,10 +539,7 @@ export default function FarmersPage() {
               setDistrictFilter(v);
               setCurrentPage(1);
             },
-            options: [
-              { label: 'All Districts', value: 'ALL' },
-              ...DISTRICT_OPTIONS.map((d) => ({ label: d.label, value: d.value })),
-            ],
+            options: filterDistrictOptions,
           },
           {
             id: 'status',
@@ -458,6 +563,8 @@ export default function FarmersPage() {
           setStatusFilter('ALL');
           setCurrentPage(1);
         }}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* Main Content Area */}
@@ -561,14 +668,14 @@ export default function FarmersPage() {
                             className="gap-2 cursor-pointer"
                           >
                             <Eye className="h-3.5 w-3.5 text-primary" />
-                            View Full Dossier
+                            View
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleOpenResetModal(farmer)}
                             className="gap-2 cursor-pointer text-blue-600 focus:text-blue-700"
                           >
                             <KeyRound className="h-3.5 w-3.5 text-blue-600" />
-                            Reset Login & Password
+                            Reset Password
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleOpenEditModal(farmer)}
@@ -576,6 +683,14 @@ export default function FarmersPage() {
                           >
                             <Edit2 className="h-3.5 w-3.5 text-amber-600" />
                             Edit Profile
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleOpenDeleteModal(farmer)}
+                            className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            Delete Farmer
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -625,7 +740,7 @@ export default function FarmersPage() {
                         className="h-7 text-xs gap-1 px-2"
                       >
                         <Eye className="h-3 w-3" />
-                        Dossier
+                        View
                       </Button>
                       <Button
                         variant="outline"
@@ -645,6 +760,15 @@ export default function FarmersPage() {
                       >
                         <Edit2 className="h-3 w-3" />
                         Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenDeleteModal(farmer)}
+                        className="h-7 text-xs gap-1 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Delete Farmer"
+                      >
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
                   </CardContent>
@@ -770,10 +894,10 @@ export default function FarmersPage() {
               <KeyRound className="h-5 w-5" />
             </div>
             <DialogTitle className="text-lg font-bold">
-              Reset Farmer Login & Password
+              Reset Farmer Password
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Change the Login User ID (Mobile) and set a new password for <strong>{farmerToReset?.name}</strong>.
+              Set a new secure login password for <strong>{farmerToReset?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -790,23 +914,18 @@ export default function FarmersPage() {
                 </Badge>
               </div>
 
-              {/* Login User ID / Mobile Number */}
+              {/* Login User ID / Mobile Number - Fixed Identifier */}
               <div className="space-y-1.5">
-                <Label htmlFor="reset_user_id" className="text-xs font-semibold flex items-center justify-between">
-                  <span>Farmer Login User ID (Mobile / Username) *</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Used to log in</span>
-                </Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="reset_user_id"
-                    type="text"
-                    value={newUserId}
-                    onChange={(e) => setNewUserId(e.target.value)}
-                    placeholder="e.g., 9876543210"
-                    className="pl-9 h-9 text-xs font-mono font-bold"
-                    required
-                  />
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-foreground">Farmer Login User ID (Mobile)</Label>
+                  <span className="text-[10px] text-muted-foreground font-medium">Permanent Account ID</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted/60 rounded-lg border border-border text-xs font-mono font-bold text-foreground">
+                  <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span>{farmerToReset.mobile_number}</span>
+                  <Badge variant="outline" className="ml-auto text-[10px] bg-background text-muted-foreground font-normal">
+                    Primary Key (Fixed)
+                  </Badge>
                 </div>
               </div>
 
@@ -890,7 +1009,7 @@ export default function FarmersPage() {
                   ) : (
                     <>
                       <KeyRound className="h-3.5 w-3.5" />
-                      Save & Update Credentials
+                      Save New Password
                     </>
                   )}
                 </Button>
@@ -902,8 +1021,8 @@ export default function FarmersPage() {
 
       {/* Add / Edit Farmer Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl max-h-[92vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className="text-lg font-bold">
               {editingFarmer ? `Edit Farmer: ${editingFarmer.name}` : 'Enroll New Wheat Farmer'}
             </DialogTitle>
@@ -912,7 +1031,8 @@ export default function FarmersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3.5 pt-2">
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto px-6 py-2 space-y-3.5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Farmer Full Name *</Label>
@@ -934,6 +1054,22 @@ export default function FarmersPage() {
                 {errors.mobile_number && <p className="text-[10px] text-destructive">{errors.mobile_number.message}</p>}
               </div>
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Email ID</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="e.g., farmer@example.com"
+                  {...register('email')}
+                  className="text-xs pl-9"
+                />
+              </div>
+              {errors.email && <p className="text-[10px] text-destructive">{errors.email.message}</p>}
+            </div>
+
+            {/* India Pincode Auto-Lookup (API Reference: aniket-thapa.github.io/india-pincode-api) */}
+            <PincodeQuickLookup onLocationSelected={handlePincodeLocationSelected} />
 
             {/* Places Geocoding Search */}
             <div className="space-y-1.5">
@@ -977,25 +1113,39 @@ export default function FarmersPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">State *</Label>
+                <SearchableSelect
+                  options={STATE_OPTIONS}
+                  value={selectedState}
+                  onChange={(val) => {
+                    setValue('state', val, { shouldValidate: true });
+                    const validDistricts = getDistrictsForState(val);
+                    if (!validDistricts.some((d) => d.value === selectedDistrict)) {
+                      setValue('district', validDistricts[0]?.value || '', { shouldValidate: true });
+                    }
+                  }}
+                  placeholder="Select State"
+                  searchPlaceholder="Search Indian state / UT..."
+                />
+                {errors.state && <p className="text-[10px] text-destructive">{errors.state.message}</p>}
+              </div>
+
+              <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">District *</Label>
                 <SearchableSelect
-                  options={DISTRICT_OPTIONS}
+                  options={formDistrictOptions}
                   value={selectedDistrict}
-                  onChange={(val) => setValue('district', val)}
+                  onChange={(val) => {
+                    setValue('district', val, { shouldValidate: true });
+                    const found = ALL_DISTRICT_OPTIONS.find((d) => d.value === val);
+                    if (found && (!selectedState || selectedState !== found.state)) {
+                      setValue('state', found.state, { shouldValidate: true });
+                    }
+                  }}
                   placeholder="Select District"
                   searchPlaceholder="Search district..."
                 />
                 {errors.district && <p className="text-[10px] text-destructive">{errors.district.message}</p>}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">State *</Label>
-                <Input
-                  placeholder="e.g., Punjab / Haryana"
-                  {...register('state')}
-                  className="text-xs"
-                />
-                {errors.state && <p className="text-[10px] text-destructive">{errors.state.message}</p>}
               </div>
             </div>
 
@@ -1008,7 +1158,87 @@ export default function FarmersPage() {
               />
             </div>
 
-            <DialogFooter className="pt-2">
+            {/* Login Credentials – only shown when enrolling a new farmer */}
+            {!editingFarmer && (
+              <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/20 p-4 space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-blue-600/10 text-blue-600 flex items-center justify-center">
+                      <KeyRound className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-blue-900 dark:text-blue-300">
+                        Farmer Login Credentials
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Admin can set custom credentials or click Auto-Generate.
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] bg-background font-normal border-blue-200 text-blue-700 dark:text-blue-400">
+                    Optional / Auto-Fallback
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold">User ID / Username</Label>
+                      <span className="text-[10px] text-muted-foreground">Default: Mobile No.</span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="enroll-user-id"
+                        placeholder="Leave blank for mobile or enter custom ID"
+                        className="text-xs font-mono"
+                        value={manualUserId}
+                        onChange={(e) => setManualUserId(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-semibold">Password</Label>
+                      <button
+                        type="button"
+                        onClick={handleEnrollAutoGeneratePassword}
+                        className="text-[11px] text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+                        title="Click to automatically generate a secure password"
+                      >
+                        <Sparkles className="h-3 w-3 text-amber-500" />
+                        Auto-Generate
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="enroll-password"
+                        type={showManualPassword ? 'text' : 'password'}
+                        placeholder="Type password or click Auto-Generate"
+                        className="text-xs pr-9 font-mono font-medium"
+                        value={manualPassword}
+                        onChange={(e) => setManualPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowManualPassword((v) => !v)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                        tabIndex={-1}
+                      >
+                        {showManualPassword ? (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            </div>
+
+            <DialogFooter className="px-6 py-4 border-t bg-muted/30 shrink-0">
               <Button type="button" variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>
@@ -1087,6 +1317,10 @@ export default function FarmersPage() {
                     <span className="font-semibold font-mono">{selectedFarmer.mobile_number}</span>
                   </div>
                   <div>
+                    <span className="text-muted-foreground block text-[11px]">Email ID:</span>
+                    <span className="font-semibold">{selectedFarmer.email || '—'}</span>
+                  </div>
+                  <div>
                     <span className="text-muted-foreground block text-[11px]">District:</span>
                     <span className="font-semibold">{selectedFarmer.district}</span>
                   </div>
@@ -1106,10 +1340,36 @@ export default function FarmersPage() {
                   )}
                 </div>
               </div>
+
+              {/* Delete Farmer Action in Dossier */}
+              <div className="pt-2 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenDeleteModal(selectedFarmer)}
+                  className="w-full text-xs font-semibold gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete Farmer Record
+                </Button>
+              </div>
             </>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Delete Farmer Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete Farmer Profile"
+        description={`Are you sure you want to delete ${farmerToDelete?.name || 'this farmer'}? This will permanently remove their records, plots, and associated login credentials.`}
+        confirmLabel={isDeleting ? 'Deleting...' : 'Delete Farmer'}
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

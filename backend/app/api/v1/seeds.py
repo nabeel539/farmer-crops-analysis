@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.exceptions import BadRequestException, NotFoundException
-from app.dependencies.auth import require_admin
+from app.dependencies.auth import get_current_user, require_admin
 from app.models.seed import SeedBatch, SeedSupply
 from app.models.user import User
 from app.models.vendor import Vendor
@@ -83,9 +83,9 @@ def list_seed_supplies(
 @router.get("/batches", response_model=list[SeedBatchResponse])
 def list_seed_batches(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ) -> list[SeedBatch]:
-    """List all seed batches with current inventory levels. Admin only."""
+    """List all seed batches with current inventory levels. Available for authenticated users."""
     return db.query(SeedBatch).order_by(SeedBatch.created_at.desc()).all()
 
 
@@ -93,9 +93,9 @@ def list_seed_batches(
 def get_seed_batch(
     batch_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ) -> SeedBatch:
-    """Get a specific seed batch with inventory details. Admin only."""
+    """Get a specific seed batch with inventory details."""
     batch = db.query(SeedBatch).filter(SeedBatch.id == batch_id).first()
     if not batch:
         raise NotFoundException("Seed batch not found")
