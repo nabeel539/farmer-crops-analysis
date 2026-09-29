@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { HarvestRecord } from '@/types';
-import { MOCK_HARVESTS } from '@/data/mockData';
 
 interface HarvestsState {
   harvests: HarvestRecord[];
@@ -11,7 +10,7 @@ interface HarvestsState {
 }
 
 const initialState: HarvestsState = {
-  harvests: MOCK_HARVESTS,
+  harvests: [],
   selectedHarvestId: null,
   searchQuery: '',
   gradeFilter: 'ALL',
@@ -22,6 +21,9 @@ export const harvestsSlice = createSlice({
   name: 'harvests',
   initialState,
   reducers: {
+    setHarvests: (state, action: PayloadAction<HarvestRecord[]>) => {
+      state.harvests = action.payload;
+    },
     addHarvest: (state, action: PayloadAction<HarvestRecord>) => {
       state.harvests.unshift(action.payload);
     },
@@ -50,6 +52,7 @@ export const harvestsSlice = createSlice({
 });
 
 export const {
+  setHarvests,
   addHarvest,
   updateHarvest,
   deleteHarvest,

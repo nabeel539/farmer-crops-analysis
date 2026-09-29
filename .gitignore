@@ -49,4 +49,5 @@ backend/.env
 .pytest_cache/
 .coverage
 *.egg-info/
+backend/uploads/
 *.db

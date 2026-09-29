@@ -1,9 +1,13 @@
 'use client';
 
 import React from 'react';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { logout } from '@/store/slices/authSlice';
+import { setActiveRole } from '@/store/slices/uiSlice';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { RoleSwitcherBar } from '@/components/shared/RoleSwitcherBar';
+import { RoleSwitcherBar, UserNav } from '@/components/shared/RoleSwitcherBar';
 import {
   Bell,
   Menu,
@@ -21,7 +25,9 @@ import {
   TrendingUp,
   FileText,
   Settings,
-  ShieldAlert
+  ShieldAlert,
+  LogOut,
+  ChevronDown
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -36,7 +42,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { MOCK_ALERTS } from '@/data/mockData';
 
 interface AdminHeaderProps {
   onQuickAction?: () => void;
@@ -44,6 +49,8 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
+  const router = useRouter();
   const { currentUser } = useAppSelector((state) => state.ui);
   const alerts = useAppSelector((state) => state.alerts.alerts);
   const unreadAlerts = alerts.filter((a) => !a.resolved);
@@ -166,90 +173,58 @@ export function AdminHeader({ onQuickAction }: AdminHeaderProps) {
                   </Link>
                 </div>
               </div>
-
-              {/* Portals Switch Section */}
-              <div className="pt-2 border-t border-border/60 space-y-2">
-                <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block">Other Portals</span>
-                <Link href="/field-officer" prefetch={false} className="flex items-center justify-between px-3 py-2 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold">
-                  <span>Field Officer Mobile App</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-                <Link href="/farmer" prefetch={false} className="flex items-center justify-between px-3 py-2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
-                  <span>Farmer Passbook App</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              </div>
             </div>
           </SheetContent>
         </Sheet>
 
-        {/* Quick Portal Switch Links */}
-        <div className="hidden lg:flex items-center gap-1.5 text-xs">
-          <Link 
-            href="/field-officer" 
-            prefetch={false}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-          >
-            <span>Field Officer</span>
-            <ExternalLink className="h-3 w-3 opacity-60" />
-          </Link>
-          <span className="text-border">|</span>
-          <Link 
-            href="/farmer" 
-            prefetch={false}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-          >
-            <span>Farmer App</span>
-            <ExternalLink className="h-3 w-3 opacity-60" />
-          </Link>
+        {/* Portal Active Badge (No instant role switching without login) */}
+        <div className="flex items-center gap-2 px-3 py-1 bg-muted/60 border border-border/80 text-xs font-semibold">
+          <span className="w-2 h-2 shrink-0 bg-emerald-500 animate-pulse" />
+          <span className="text-foreground font-bold tracking-tight">Admin Command Center</span>
         </div>
       </div>
 
-      {/* Right side: Role Switcher + Alerts + Profile */}
-      <div className="flex items-center gap-2.5">
-        <RoleSwitcherBar />
-
+      {/* Right side: Alerts + Profile */}
+      <div className="flex items-center gap-3">
         {/* Agri Alerts Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger render={
-            <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full">
+            <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-xl hover:bg-muted/80 cursor-pointer">
               <Bell className="h-4 w-4 text-foreground" />
               {unreadAlerts.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-background" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-background animate-pulse" />
               )}
             </Button>
           } />
-          <DropdownMenuContent align="end" className="w-80">
-            <DropdownMenuLabel className="flex items-center justify-between text-xs">
-              <span>Agri Alerts & Warnings</span>
-              <Badge variant="secondary" className="text-[10px]">{unreadAlerts.length} Active</Badge>
+          <DropdownMenuContent align="end" className="w-80 rounded-2xl p-2 shadow-xl border border-border/80">
+            <DropdownMenuLabel className="flex items-center justify-between text-xs px-2 py-1.5">
+              <span className="font-bold">Agri Alerts & Warnings</span>
+              <Badge variant="secondary" className="text-[10px] font-mono">{unreadAlerts.length} Active</Badge>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <div className="max-h-72 overflow-y-auto space-y-1 p-1">
+            <div className="max-h-72 overflow-y-auto space-y-1 p-1 scrollbar-thin">
               {alerts.slice(0, 4).map((alert) => (
                 <Link key={alert.id} href="/admin/alerts" className="block">
-                  <div className="p-2 rounded-lg hover:bg-muted/60 transition-colors cursor-pointer text-xs space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-foreground truncate">{alert.title}</span>
-                      <Badge variant={alert.severity === 'CRITICAL' ? 'destructive' : 'outline'} className="text-[9px] px-1 h-3.5">
+                  <div className="p-2.5 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer text-xs space-y-1 border border-transparent hover:border-border/60">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="font-bold text-foreground truncate">{alert.title}</span>
+                      <Badge variant={alert.severity === 'CRITICAL' ? 'destructive' : 'outline'} className="text-[9px] px-1.5 h-4 font-semibold">
                         {alert.severity}
                       </Badge>
                     </div>
-                    <p className="text-[11px] text-muted-foreground line-clamp-2">{alert.description}</p>
-                    <span className="text-[10px] text-muted-foreground/80">{alert.region}</span>
+                    <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed">{alert.description}</p>
+                    <span className="text-[10px] text-muted-foreground/80 font-mono">{alert.region}</span>
                   </div>
                 </Link>
               ))}
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem render={<Link href="/admin/alerts" className="text-xs text-center justify-center cursor-pointer font-medium text-primary block w-full py-1">View All Agricultural Alerts</Link>} />
+            <DropdownMenuItem render={<Link href="/admin/alerts" className="text-xs text-center justify-center cursor-pointer font-bold text-emerald-600 block w-full py-1.5 rounded-lg hover:bg-emerald-500/10">View All Agricultural Alerts →</Link>} />
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User initials avatar */}
-        <div className="w-8 h-8 rounded-full bg-primary/20 text-primary-foreground flex items-center justify-center font-bold text-xs border border-primary/40 shrink-0">
-          {currentUser.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-        </div>
+        {/* User initials avatar — click to logout */}
+        <UserNav />
       </div>
     </header>
   );

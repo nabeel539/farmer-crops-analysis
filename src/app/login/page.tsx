@@ -27,6 +27,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/utils';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -98,11 +99,17 @@ export default function LoginPage() {
       let foundRegisteredFarmer: any = null;
       try {
         const savedCreds = JSON.parse(localStorage.getItem('registered_farmer_credentials') || '[]');
+        const cleanIdent = email.trim().toLowerCase();
+        const cleanPass = password.trim();
+
         foundRegisteredFarmer = savedCreds.find(
           (c: any) =>
-            (c.userId?.trim().toLowerCase() === email.trim().toLowerCase() ||
-             c.mobile?.trim().toLowerCase() === email.trim().toLowerCase()) &&
-            c.pass?.trim() === password.trim()
+            (c.userId?.trim().toLowerCase() === cleanIdent ||
+             c.mobile?.trim().toLowerCase() === cleanIdent ||
+             c.email?.trim().toLowerCase() === cleanIdent ||
+             `${c.userId?.trim().toLowerCase()}@krishi.local` === cleanIdent ||
+             `${c.mobile?.trim().toLowerCase()}@krishi.local` === cleanIdent) &&
+            c.pass?.trim() === cleanPass
         );
       } catch (e) {
         console.error(e);
@@ -110,10 +117,10 @@ export default function LoginPage() {
 
       if (foundRegisteredFarmer) {
         const farmerUser = {
-          id: 'farmer-' + (foundRegisteredFarmer.userId || 'custom'),
+          id: 'farmer-' + (foundRegisteredFarmer.userId || foundRegisteredFarmer.mobile || 'custom'),
           name: foundRegisteredFarmer.name,
-          email: `${foundRegisteredFarmer.userId}@krishi.local`,
-          mobile: foundRegisteredFarmer.userId,
+          email: foundRegisteredFarmer.email || `${foundRegisteredFarmer.userId || foundRegisteredFarmer.mobile}@krishi.local`,
+          mobile: foundRegisteredFarmer.mobile || foundRegisteredFarmer.userId,
           role: 'FARMER' as any,
           is_active: true,
         };
@@ -127,7 +134,7 @@ export default function LoginPage() {
           id: farmerUser.id,
           name: foundRegisteredFarmer.name,
           email: farmerUser.email,
-          phone: foundRegisteredFarmer.userId,
+          phone: foundRegisteredFarmer.mobile || foundRegisteredFarmer.userId,
           role: 'FARMER' as const,
           assignedRegion: foundRegisteredFarmer.village || 'Karnal, Haryana',
         };
@@ -172,8 +179,9 @@ export default function LoginPage() {
         else if (role === 'FIELD_OFFICER') router.push('/field-officer');
         else router.push('/farmer');
       } else {
-        setErrorMsg(err?.data?.detail || 'Invalid User ID, Mobile, or Password. Please verify and try again.');
-        toast.error('Authentication failed. Please check your login credentials.');
+        const message = getErrorMessage(err, 'Invalid User ID, Mobile, or Password. Please verify and try again.');
+        setErrorMsg(message);
+        toast.error(message);
       }
     }
   };
@@ -190,11 +198,6 @@ export default function LoginPage() {
             <h1 className="font-bold text-sm leading-none text-foreground">Krishi AgriTech</h1>
             <p className="text-[11px] text-muted-foreground">Farmer & Wheat Crop Monitoring System</p>
           </div>
-        </Link>
-        <Link href="/">
-          <Button variant="ghost" size="sm" className="text-xs">
-            Back to Home
-          </Button>
         </Link>
       </header>
 
@@ -285,55 +288,7 @@ export default function LoginPage() {
               </CardContent>
             </form>
 
-            <CardFooter className="flex flex-col space-y-4 pt-2 border-t border-border/60">
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    One-Click Demo Access:
-                  </span>
-                </div>
 
-                {/* 3 Role Quick Login Chips */}
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDemoCredentials('admin@krishi.com', 'admin1234')}
-                    className="flex flex-col h-auto py-2 px-1 text-center border-border/80 hover:border-primary hover:bg-primary/5"
-                  >
-                    <ShieldCheck className="h-4 w-4 text-emerald-600 mb-1" />
-                    <span className="text-[11px] font-bold">Admin</span>
-                    <span className="text-[9px] text-muted-foreground">Full Access</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDemoCredentials('officer@krishi.com', 'officer1234')}
-                    className="flex flex-col h-auto py-2 px-1 text-center border-border/80 hover:border-blue-500 hover:bg-blue-500/5"
-                  >
-                    <UserCheck className="h-4 w-4 text-blue-600 mb-1" />
-                    <span className="text-[11px] font-bold">Officer</span>
-                    <span className="text-[9px] text-muted-foreground">Field Ops</span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDemoCredentials('ramesh@krishi.com', 'farmer1234')}
-                    className="flex flex-col h-auto py-2 px-1 text-center border-border/80 hover:border-amber-500 hover:bg-amber-500/5"
-                  >
-                    <Smartphone className="h-4 w-4 text-amber-600 mb-1" />
-                    <span className="text-[11px] font-bold">Farmer</span>
-                    <span className="text-[9px] text-muted-foreground">Passbook</span>
-                  </Button>
-                </div>
-              </div>
-            </CardFooter>
           </Card>
         </div>
       </main>

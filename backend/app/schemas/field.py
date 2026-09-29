@@ -3,7 +3,30 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def normalize_color(v: str | None) -> str | None:
+    if v is None:
+        return None
+    val = str(v).strip()
+    if not val:
+        return "GREEN"
+    val_upper = val.upper()
+    if val_upper in ("GREEN", "YELLOW", "RED", "BLUE"):
+        return val_upper
+    
+    # Map hex or other color names
+    val_lower = val.lower()
+    if any(h in val_lower for h in ("10b981", "22c55e", "16a34a", "green", "00ff00")):
+        return "GREEN"
+    if any(h in val_lower for h in ("f59e0b", "eab308", "ca8a04", "yellow", "amber")):
+        return "YELLOW"
+    if any(h in val_lower for h in ("ef4444", "dc2626", "b91c1c", "red", "rose")):
+        return "RED"
+    if any(h in val_lower for h in ("3b82f6", "2563eb", "1d4ed8", "blue", "cyan")):
+        return "BLUE"
+    return "GREEN"
 
 
 class FieldCreate(BaseModel):
@@ -17,12 +40,17 @@ class FieldCreate(BaseModel):
     area: float | None = Field(None, gt=0)
     crop: str | None = Field(None, max_length=100)
     season: str | None = Field(None, max_length=50)
-    status: str = Field(default="ACTIVE", pattern="^(ACTIVE|INACTIVE|HARVESTED)$")
+    status: str = Field(default="PENDING_VERIFICATION", pattern="^(PENDING_VERIFICATION|ACTIVE|CORRECTION_REQUIRED|REJECTED|INACTIVE|HARVESTED)$")
     latitude: float | None = None
     longitude: float | None = None
     polygon: dict[str, Any] | None = None  # GeoJSON format
-    polygon_color: str = Field(default="GREEN", pattern="^(GREEN|YELLOW|RED|BLUE)$")
+    polygon_color: str = Field(default="GREEN")
     notes: str | None = None
+
+    @field_validator("polygon_color", mode="before")
+    @classmethod
+    def validate_color(cls, v: str | None) -> str:
+        return normalize_color(v) or "GREEN"
 
 
 class FieldUpdate(BaseModel):
@@ -35,12 +63,17 @@ class FieldUpdate(BaseModel):
     area: float | None = Field(None, gt=0)
     crop: str | None = Field(None, max_length=100)
     season: str | None = Field(None, max_length=50)
-    status: str | None = Field(None, pattern="^(ACTIVE|INACTIVE|HARVESTED)$")
+    status: str | None = Field(None, pattern="^(PENDING_VERIFICATION|ACTIVE|CORRECTION_REQUIRED|REJECTED|INACTIVE|HARVESTED)$")
     latitude: float | None = None
     longitude: float | None = None
     polygon: dict[str, Any] | None = None
-    polygon_color: str | None = Field(None, pattern="^(GREEN|YELLOW|RED|BLUE)$")
+    polygon_color: str | None = Field(None)
     notes: str | None = None
+
+    @field_validator("polygon_color", mode="before")
+    @classmethod
+    def validate_color(cls, v: str | None) -> str | None:
+        return normalize_color(v)
 
 
 class FieldResponse(BaseModel):

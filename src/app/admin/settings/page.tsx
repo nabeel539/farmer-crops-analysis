@@ -31,14 +31,20 @@ import {
   Layers,
   RotateCcw,
   Sparkles,
-  Palette
+  Palette,
+  Table as TableIcon,
+  LayoutGrid
 } from 'lucide-react';
-import { MOCK_USERS, MOCK_AUDIT_LOGS } from '@/data/mockData';
 import { toast } from 'sonner';
+import { AuditLog, User } from '@/types';
 
 export default function SettingsPage() {
   const dispatch = useAppDispatch();
   const gisSettings = useAppSelector((state) => state.ui.gisSettings);
+  const currentUser = useAppSelector((state) => state.ui.currentUser);
+
+  const [usersViewMode, setUsersViewMode] = useState<'table' | 'cards'>('table');
+  const [auditViewMode, setAuditViewMode] = useState<'table' | 'cards'>('table');
 
   // General parameters
   const [mspPrice, setMspPrice] = useState(2275);
@@ -55,7 +61,7 @@ export default function SettingsPage() {
   const [strokeWeight, setStrokeWeight] = useState(gisSettings?.strokeWeight || 3);
   const [opacity, setOpacity] = useState(gisSettings?.polygonOpacity || 0.35);
 
-  const [auditLogs, setAuditLogs] = useState(MOCK_AUDIT_LOGS);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
 
   const handleSaveParams = (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,94 +392,226 @@ export default function SettingsPage() {
 
         {/* 3. User Role Management Table */}
         <Card className="lg:col-span-12 border shadow-xs">
-          <CardHeader className="pb-3 border-b">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base font-bold">Authorized System Personas & Role Matrix</CardTitle>
+          <CardHeader className="pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base font-bold">Authorized System Personas & Role Matrix</CardTitle>
+              </div>
+              <CardDescription className="text-xs">
+                Configured access accounts across Super Admin, Agronomy, Field Officer, and Farmer roles
+              </CardDescription>
             </div>
-            <CardDescription className="text-xs">
-              Configured access accounts across Super Admin, Agronomy, Field Officer, and Farmer roles
-            </CardDescription>
+            <div className="flex items-center bg-muted/70 p-0.5 rounded-lg border shrink-0">
+              <Button
+                type="button"
+                variant={usersViewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setUsersViewMode('table')}
+                className={`h-7 px-2.5 text-xs font-semibold gap-1.5 ${
+                  usersViewMode === 'table' ? 'shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <TableIcon className="h-3.5 w-3.5" />
+                Table
+              </Button>
+              <Button
+                type="button"
+                variant={usersViewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setUsersViewMode('cards')}
+                className={`h-7 px-2.5 text-xs font-semibold gap-1.5 ${
+                  usersViewMode === 'cards' ? 'shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Cards
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 text-xs">
-                  <TableHead className="font-bold">Full Name</TableHead>
-                  <TableHead className="font-bold">Contact / Email</TableHead>
-                  <TableHead className="font-bold">Assigned Jurisdiction</TableHead>
-                  <TableHead className="font-bold">Access Role</TableHead>
-                  <TableHead className="font-bold text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="text-xs">
-                {MOCK_USERS.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-muted/30">
-                    <TableCell className="font-semibold text-foreground">{user.name}</TableCell>
-                    <TableCell>
-                      <span>{user.email}</span>
-                      <span className="text-[11px] text-muted-foreground block font-mono">{user.phone}</span>
-                    </TableCell>
-                    <TableCell>{user.assignedRegion || 'Central Directorate'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono text-[10px]">
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Active
-                      </span>
-                    </TableCell>
+            {usersViewMode === 'table' ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 text-xs">
+                    <TableHead className="font-bold">Full Name</TableHead>
+                    <TableHead className="font-bold">Contact / Email</TableHead>
+                    <TableHead className="font-bold">Assigned Jurisdiction</TableHead>
+                    <TableHead className="font-bold">Access Role</TableHead>
+                    <TableHead className="font-bold text-right">Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody className="text-xs">
+                  {currentUser ? (
+                    <TableRow key={currentUser.id} className="hover:bg-muted/30">
+                      <TableCell className="font-semibold text-foreground">{currentUser.name}</TableCell>
+                      <TableCell>
+                        <span>{currentUser.email}</span>
+                        <span className="text-[11px] text-muted-foreground block font-mono">{currentUser.phone || 'N/A'}</span>
+                      </TableCell>
+                      <TableCell>{currentUser.assignedRegion || 'Central Directorate'}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-[10px]">
+                          {currentUser.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Active
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                        No additional accounts configured.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {currentUser && (
+                  <Card className="border shadow-xs hover:border-primary/40 transition-all">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">{currentUser.name}</h4>
+                          <span className="text-[11px] text-muted-foreground">{currentUser.assignedRegion || 'Central Directorate'}</span>
+                        </div>
+                        <Badge variant="outline" className="font-mono text-[10px]">
+                          {currentUser.role}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 text-xs pt-1 border-t text-muted-foreground">
+                        <div>Email: <span className="font-mono text-foreground">{currentUser.email}</span></div>
+                        <div>Phone: <span className="font-mono text-foreground">{currentUser.phone || 'N/A'}</span></div>
+                      </div>
+                      <div className="pt-2 border-t flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Status:</span>
+                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Active
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* 4. Tamper-Evident System Audit Trail */}
         <Card className="lg:col-span-12 border shadow-xs">
-          <CardHeader className="pb-3 border-b">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base font-bold">Immutable Audit Log & Action History</CardTitle>
+          <CardHeader className="pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base font-bold">Immutable Audit Log & Action History</CardTitle>
+              </div>
+              <CardDescription className="text-xs">
+                Traceability records of parameter adjustments, GIS polygon updates, and system transactions
+              </CardDescription>
             </div>
-            <CardDescription className="text-xs">
-              Traceability records of parameter adjustments, GIS polygon updates, and system transactions
-            </CardDescription>
+            <div className="flex items-center bg-muted/70 p-0.5 rounded-lg border shrink-0">
+              <Button
+                type="button"
+                variant={auditViewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setAuditViewMode('table')}
+                className={`h-7 px-2.5 text-xs font-semibold gap-1.5 ${
+                  auditViewMode === 'table' ? 'shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <TableIcon className="h-3.5 w-3.5" />
+                Table
+              </Button>
+              <Button
+                type="button"
+                variant={auditViewMode === 'cards' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setAuditViewMode('cards')}
+                className={`h-7 px-2.5 text-xs font-semibold gap-1.5 ${
+                  auditViewMode === 'cards' ? 'shadow-xs' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Cards
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/40 text-xs">
-                  <TableHead className="font-bold">Timestamp</TableHead>
-                  <TableHead className="font-bold">User / Role</TableHead>
-                  <TableHead className="font-bold">Action Type</TableHead>
-                  <TableHead className="font-bold">Target Entity</TableHead>
-                  <TableHead className="font-bold">Transaction Details</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="text-xs font-mono">
-                {auditLogs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-muted/30">
-                    <TableCell className="text-muted-foreground">{log.timestamp}</TableCell>
-                    <TableCell className="font-bold text-foreground">
-                      {log.userName}
-                      <span className="block text-[10px] text-muted-foreground font-normal">{log.userRole}</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="text-[10px] font-mono">
-                        {log.action}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{log.entity} &bull; {log.entityId}</TableCell>
-                    <TableCell className="text-foreground max-w-xs truncate font-sans text-xs">{log.details}</TableCell>
+            {auditViewMode === 'table' ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 text-xs">
+                    <TableHead className="font-bold">Timestamp</TableHead>
+                    <TableHead className="font-bold">User / Role</TableHead>
+                    <TableHead className="font-bold">Action Type</TableHead>
+                    <TableHead className="font-bold">Target Entity</TableHead>
+                    <TableHead className="font-bold">Transaction Details</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody className="text-xs font-mono">
+                  {auditLogs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-6 text-muted-foreground font-sans text-xs">
+                        No transactions recorded in current session. Parameter or GIS updates will appear here automatically.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <TableRow key={log.id} className="hover:bg-muted/30">
+                        <TableCell className="text-muted-foreground">{log.timestamp}</TableCell>
+                        <TableCell className="font-bold text-foreground">
+                          {log.userName}
+                          <span className="block text-[10px] text-muted-foreground font-normal">{log.userRole}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-[10px] font-mono">
+                            {log.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{log.entity} &bull; {log.entityId}</TableCell>
+                        <TableCell className="text-foreground max-w-xs truncate font-sans text-xs">{log.details}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {auditLogs.length === 0 ? (
+                  <div className="col-span-full text-center py-6 text-muted-foreground text-xs">
+                    No transactions recorded in current session. Parameter or GIS updates will appear here automatically.
+                  </div>
+                ) : (
+                  auditLogs.map((log) => (
+                    <Card key={log.id} className="border shadow-xs hover:border-primary/40 transition-all">
+                      <CardContent className="p-4 space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-mono text-xs font-bold text-primary">{log.userName}</span>
+                            <span className="text-[10px] text-muted-foreground block font-mono">{log.userRole}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] font-mono">
+                            {log.action}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-foreground font-medium pt-1 border-t">{log.details}</p>
+                        <div className="pt-1.5 border-t flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+                          <span>{log.entity} &bull; {log.entityId}</span>
+                          <span>{log.timestamp}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

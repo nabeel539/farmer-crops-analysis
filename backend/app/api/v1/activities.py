@@ -167,3 +167,19 @@ def update_activity(
     db.commit()
     db.refresh(activity)
     return activity
+
+
+@router.delete("/{activity_id}", status_code=204)
+def delete_activity(
+    activity_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin_or_officer),
+) -> None:
+    """Delete a field activity by ID."""
+    activity = db.query(Activity).filter(Activity.id == activity_id).first()
+    if not activity:
+        raise NotFoundException("Activity not found")
+
+    db.delete(activity)
+    db.commit()
+    return None

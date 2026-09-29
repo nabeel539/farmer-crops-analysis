@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -16,6 +16,7 @@ import { SearchFilterBar } from '@/components/shared/SearchFilterBar';
 import { MetricCard } from '@/components/shared/MetricCard';
 import { EmptyState } from '@/components/shared/EmptyState';
 import DataTablePagination, { ViewMode } from '@/components/shared/DataTablePagination';
+import { PincodeQuickLookup } from '@/components/shared/PincodeQuickLookup';
 import {
   Table,
   TableBody,
@@ -58,6 +59,7 @@ import {
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/utils';
 
 const vendorFormSchema = z.object({
   vendor_name: z.string().min(2, 'Vendor name must be at least 2 characters'),
@@ -95,6 +97,7 @@ export default function VendorsPage() {
     handleSubmit,
     reset,
     setValue,
+    getValues,
     watch,
     formState: { errors },
   } = useForm<VendorFormValues>({
@@ -144,6 +147,15 @@ export default function VendorsPage() {
 
   const activeCount = apiVendors.filter((v) => v.status === 'ACTIVE').length;
 
+  const handleVendorLocationSelected = useCallback(
+    (loc: { state: string; district: string; pincode: string; selectedOffice?: string }) => {
+      const currentAddr = getValues('address') || '';
+      const locSuffix = `${loc.selectedOffice ? loc.selectedOffice + ', ' : ''}${loc.district}, ${loc.state} - ${loc.pincode}`;
+      setValue('address', currentAddr ? `${currentAddr}, ${locSuffix}` : locSuffix, { shouldValidate: true });
+    },
+    [getValues, setValue]
+  );
+
   const handleOpenCreateDialog = () => {
     reset({
       vendor_name: '',
@@ -180,7 +192,7 @@ export default function VendorsPage() {
       setCreateDialogOpen(false);
       reset();
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to create vendor');
+      toast.error(getErrorMessage(err, 'Failed to create vendor'));
     }
   };
 
@@ -191,7 +203,7 @@ export default function VendorsPage() {
       toast.success(`Vendor "${values.vendor_name}" updated successfully`);
       setEditDialogOpen(false);
     } catch (err: any) {
-      toast.error(err?.data?.detail || 'Failed to update vendor');
+      toast.error(getErrorMessage(err, 'Failed to update vendor'));
     }
   };
 
@@ -201,7 +213,7 @@ export default function VendorsPage() {
         await deleteVendor(id).unwrap();
         toast.success(`Vendor "${name}" deleted`);
       } catch (err: any) {
-        toast.error(err?.data?.detail || 'Failed to delete vendor');
+        toast.error(getErrorMessage(err, 'Failed to delete vendor'));
       }
     }
   };
@@ -271,6 +283,8 @@ export default function VendorsPage() {
           setStatusFilter('ALL');
           setCurrentPage(1);
         }}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* Vendors Table / Card View Area */}
@@ -515,6 +529,9 @@ export default function VendorsPage() {
                 <Input placeholder="03AAAAA0000A1Z5" {...register('gstin')} className="text-xs" />
               </div>
             </div>
+
+            {/* India Pincode Auto-Lookup (API Reference: aniket-thapa.github.io/india-pincode-api) */}
+            <PincodeQuickLookup onLocationSelected={handleVendorLocationSelected} />
 
             <div className="space-y-1.5">
               <Label className="text-xs">Warehouse / Office Address</Label>

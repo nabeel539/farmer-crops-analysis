@@ -24,6 +24,11 @@ export interface CropCycleRecord {
   risk_alert_level: string;
   last_inspection_date?: string | null;
   remarks?: string | null;
+  irrigation_strategy?: string;
+  nutrition_plan?: string;
+  seed_treatment?: string;
+  officer_advisory?: string;
+  notify_sms?: boolean;
   created_at: string;
 }
 
@@ -39,6 +44,11 @@ export interface CropCycleCreateRequest {
   expected_harvest_date: string;
   expected_yield_maunds_per_acre?: number;
   remarks?: string | null;
+  irrigation_strategy?: string;
+  nutrition_plan?: string;
+  seed_treatment?: string;
+  officer_advisory?: string;
+  notify_sms?: boolean;
 }
 
 export interface CropCycleStageUpdateRequest {
@@ -109,6 +119,7 @@ export const cropCycleApi = baseApi.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: 'CropCycle', id },
         { type: 'CropCycle', id: 'LIST' },
+        { type: 'HarvestRecord', id: 'LIST' },
       ],
     }),
     updateCropCycle: builder.mutation<
@@ -123,6 +134,7 @@ export const cropCycleApi = baseApi.injectEndpoints({
       invalidatesTags: (result, error, { id }) => [
         { type: 'CropCycle', id },
         { type: 'CropCycle', id: 'LIST' },
+        { type: 'HarvestRecord', id: 'LIST' },
       ],
     }),
   }),

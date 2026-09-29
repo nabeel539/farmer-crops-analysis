@@ -11,7 +11,6 @@ import {
   setAlertSeverityFilter,
 } from '@/store/slices/alertsSlice';
 import { AgriAlert, AdvisoryBulletin } from '@/types';
-import { MOCK_ADVISORIES } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -51,7 +50,7 @@ import { toast } from 'sonner';
 export default function AlertsPage() {
   const dispatch = useAppDispatch();
   const { alerts, severityFilter } = useAppSelector((state) => state.alerts);
-  const [advisories, setAdvisories] = useState<AdvisoryBulletin[]>(MOCK_ADVISORIES);
+  const [advisories, setAdvisories] = useState<AdvisoryBulletin[]>([]);
 
   const [activeTab, setActiveTab] = useState<'ALERTS' | 'ADVISORIES'>('ALERTS');
   const [addAlertModalOpen, setAddAlertModalOpen] = useState(false);

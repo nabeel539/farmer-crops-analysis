@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { MillingBatch } from '@/types';
-import { MOCK_MILLING_BATCHES } from '@/data/mockData';
 
 interface MillingState {
   batches: MillingBatch[];
@@ -10,7 +9,7 @@ interface MillingState {
 }
 
 const initialState: MillingState = {
-  batches: MOCK_MILLING_BATCHES,
+  batches: [],
   selectedBatchId: null,
   searchQuery: '',
   statusFilter: 'ALL'
@@ -20,6 +19,9 @@ export const millingSlice = createSlice({
   name: 'milling',
   initialState,
   reducers: {
+    setBatches: (state, action: PayloadAction<MillingBatch[]>) => {
+      state.batches = action.payload;
+    },
     addBatch: (state, action: PayloadAction<MillingBatch>) => {
       state.batches.unshift(action.payload);
     },
@@ -45,6 +47,7 @@ export const millingSlice = createSlice({
 });
 
 export const {
+  setBatches,
   addBatch,
   updateBatch,
   deleteBatch,

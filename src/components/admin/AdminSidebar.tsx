@@ -94,22 +94,28 @@ export function AdminSidebar() {
         )}
       >
         {/* Brand Header */}
-        <div className={cn(
-          'h-14 flex items-center border-b border-border/60 shrink-0 px-2.5 transition-all',
-          sidebarOpen ? 'justify-between' : 'justify-center'
-        )}>
+        <div
+          className={cn(
+            'h-16 flex items-center border-b border-border/70 shrink-0 px-3 transition-all',
+            sidebarOpen ? 'justify-between' : 'justify-center'
+          )}
+        >
           {sidebarOpen ? (
             <>
-              <Link href="/admin" prefetch={false} className="flex items-center gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
-                <div className="w-9 h-9 rounded-md bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0 shadow-sm ring-1 ring-primary/20">
-                  <Wheat className="h-5 w-5" />
+              <Link
+                href="/admin"
+                prefetch={false}
+                className="flex items-center gap-2.5 min-w-0 group hover:opacity-90 transition-opacity"
+              >
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white font-bold shrink-0 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                  <Wheat className="h-5 w-5 stroke-[2.2]" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-bold text-sm tracking-tight text-foreground truncate">
+                  <span className="font-extrabold text-sm tracking-tight text-foreground truncate flex items-center gap-1">
                     Krishi AgriTech
                   </span>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-mono truncate">
-                    Wheat Platform
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider font-mono truncate">
+                    Smart Farming Suite
                   </span>
                 </div>
               </Link>
@@ -117,7 +123,7 @@ export function AdminSidebar() {
                 variant="ghost"
                 size="icon"
                 onClick={() => dispatch(toggleSidebar())}
-                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md shrink-0 cursor-pointer"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg shrink-0 cursor-pointer"
                 title="Collapse Sidebar"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -128,11 +134,11 @@ export function AdminSidebar() {
               <TooltipTrigger render={
                 <button
                   onClick={() => dispatch(toggleSidebar())}
-                  className="group relative w-10 h-10 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center font-bold transition-all shadow-sm cursor-pointer"
+                  className="group relative w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white flex items-center justify-center font-bold transition-all shadow-md shadow-emerald-500/20 hover:scale-105 cursor-pointer"
                   title="Click to Expand Sidebar"
                 >
-                  <Wheat className="h-5 w-5 group-hover:scale-90 transition-transform" />
-                  <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-card text-primary border border-border/80 rounded-full flex items-center justify-center shadow-xs">
+                  <Wheat className="h-5 w-5 group-hover:rotate-12 transition-transform" />
+                  <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-card text-emerald-600 border border-border/80 rounded-full flex items-center justify-center shadow-xs">
                     <ChevronRight className="h-2.5 w-2.5 stroke-[3]" />
                   </span>
                 </button>
@@ -149,7 +155,7 @@ export function AdminSidebar() {
           {NAV_SECTIONS.map((section, idx) => (
             <div key={idx} className="space-y-1">
               {sidebarOpen ? (
-                <h4 className="text-[9px] font-bold text-muted-foreground/70 uppercase tracking-wider px-2 py-0.5 select-none">
+                <h4 className="text-[9px] font-extrabold text-muted-foreground/70 uppercase tracking-wider px-2 py-0.5 select-none">
                   {section.title}
                 </h4>
               ) : (
@@ -157,7 +163,8 @@ export function AdminSidebar() {
               )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+                  const isActive =
+                    pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
                   const Icon = item.icon;
 
                   if (!sidebarOpen) {
@@ -168,15 +175,15 @@ export function AdminSidebar() {
                             href={item.href}
                             prefetch={false}
                             className={cn(
-                              'relative flex items-center justify-center h-9 w-9 mx-auto rounded-md transition-all duration-150',
+                              'relative flex items-center justify-center h-9 w-9 mx-auto rounded-xl transition-all duration-200',
                               isActive
-                                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                                ? 'bg-emerald-600 text-white font-bold shadow-sm shadow-emerald-600/30'
                                 : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                             )}
                           >
                             <Icon className="h-4 w-4" />
                             {item.badge && (
-                              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
+                              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-background" />
                             )}
                           </Link>
                         } />
@@ -194,14 +201,21 @@ export function AdminSidebar() {
                       href={item.href}
                       prefetch={false}
                       className={cn(
-                        'flex items-center justify-between px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-150 group',
+                        'flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 group',
                         isActive
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground font-bold shadow-2xs border border-border/50'
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30 shadow-2xs'
                           : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground'
                       )}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Icon className={cn('h-3.5 w-3.5 shrink-0 transition-colors', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Icon
+                          className={cn(
+                            'h-4 w-4 shrink-0 transition-colors',
+                            isActive
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-muted-foreground group-hover:text-foreground'
+                          )}
+                        />
                         <span className="truncate">{item.title}</span>
                       </div>
                       {item.badge && (

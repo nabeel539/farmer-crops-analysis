@@ -1,7 +1,9 @@
 """Krishi AgriTech — FastAPI application entry point."""
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1 import (
     activities,
@@ -13,6 +15,7 @@ from app.api.v1 import (
     harvests,
     reports,
     seeds,
+    uploads,
     vendors,
     visits,
 )
@@ -35,6 +38,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ensure uploads directory exists and mount static files
+UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
 # API v1 routers
 API_PREFIX = "/api/v1"
 app.include_router(auth.router, prefix=API_PREFIX)
@@ -48,6 +56,7 @@ app.include_router(activities.router, prefix=API_PREFIX)
 app.include_router(visits.router, prefix=API_PREFIX)
 app.include_router(harvests.router, prefix=API_PREFIX)
 app.include_router(reports.router, prefix=API_PREFIX)
+app.include_router(uploads.router, prefix=API_PREFIX)
 
 
 @app.get("/", tags=["Health"])

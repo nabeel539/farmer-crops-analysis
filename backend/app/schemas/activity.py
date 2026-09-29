@@ -1,7 +1,7 @@
 """Pydantic schemas for Field Activity operations."""
 
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ActivityCreate(BaseModel):
@@ -11,7 +11,7 @@ class ActivityCreate(BaseModel):
     field_id: str | None = None
     crop_cycle_id: str | None = None
     activity_type: str = Field(..., pattern="^(IRRIGATION|FERTILIZER_UREA|FERTILIZER_DAP|FERTILIZER_POTASH|PESTICIDE_SPRAY|WEEDICIDE_SPRAY|FIELD_VISIT_INSPECTION|SOIL_TEST|NDVI_ASSESSMENT)$")
-    scheduled_date: str = Field(..., max_length=20)
+    scheduled_date: str = Field(..., max_length=50)
     dosage_or_volume: str | None = Field(None, max_length=255)
     cost: float = Field(default=0.0, ge=0)
     logged_by_role: str = Field(default="ADMIN", max_length=50)
@@ -20,13 +20,27 @@ class ActivityCreate(BaseModel):
     photo_url: str | None = Field(None, max_length=500)
     recommendation_adherence: bool = True
 
+    @field_validator("scheduled_date", mode="before")
+    @classmethod
+    def format_date_strings(cls, v: str | None) -> str | None:
+        if v and isinstance(v, str):
+            return v.split("T")[0]
+        return v
+
 
 class ActivityComplete(BaseModel):
     """Schema for completing/executing an activity."""
 
-    executed_date: str = Field(..., max_length=20)
+    executed_date: str = Field(..., max_length=50)
     notes: str | None = None
     recommendation_adherence: bool | None = None
+
+    @field_validator("executed_date", mode="before")
+    @classmethod
+    def format_date_strings(cls, v: str | None) -> str | None:
+        if v and isinstance(v, str):
+            return v.split("T")[0]
+        return v
 
 
 class ActivityUpdate(BaseModel):
@@ -40,6 +54,13 @@ class ActivityUpdate(BaseModel):
     cost: float | None = None
     notes: str | None = None
     recommendation_adherence: bool | None = None
+
+    @field_validator("scheduled_date", "executed_date", mode="before")
+    @classmethod
+    def format_date_strings(cls, v: str | None) -> str | None:
+        if v and isinstance(v, str):
+            return v.split("T")[0]
+        return v
 
 
 class ActivityResponse(BaseModel):

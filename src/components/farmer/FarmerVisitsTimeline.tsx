@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { OfficerVisitRecord } from '@/store/api/visitApi';
+import { ActivityRecord } from '@/store/api/activityApi';
 import { Farmer } from '@/store/api/farmerApi';
 import {
   ShieldCheck,
@@ -14,16 +15,26 @@ import {
   CheckCircle2,
   MapPin,
   FileCheck,
+  Camera,
+  Layers,
+  FlaskConical,
+  Wheat,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface FarmerVisitsTimelineProps {
   farmer: Farmer;
   visits: OfficerVisitRecord[];
+  activities?: ActivityRecord[];
   isLoading: boolean;
 }
 
-export function FarmerVisitsTimeline({ farmer, visits, isLoading }: FarmerVisitsTimelineProps) {
+export function FarmerVisitsTimeline({
+  farmer,
+  visits = [],
+  activities = [],
+  isLoading,
+}: FarmerVisitsTimelineProps) {
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -32,6 +43,16 @@ export function FarmerVisitsTimeline({ farmer, visits, isLoading }: FarmerVisits
       </div>
     );
   }
+
+  // Filter activities that were logged by a Field Officer or Agronomist
+  const officerActivities = activities.filter(
+    (a) =>
+      a.logged_by_role === 'FIELD_OFFICER' ||
+      a.logged_by_role === 'AGRONOMIST' ||
+      (a.logged_by_name && a.logged_by_name.toLowerCase().includes('officer'))
+  );
+
+  const totalInspectionsCount = visits.length + officerActivities.length;
 
   return (
     <div className="space-y-6">
@@ -48,20 +69,20 @@ export function FarmerVisitsTimeline({ farmer, visits, isLoading }: FarmerVisits
                   Field Officer Scouting & Ground Truth Inspections
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Official on-site visits and recommendations by Department of Agriculture Agronomists.
+                  Official on-site visits, crop scouting, and recommendations by Agriculture Field Officers for {farmer.name}.
                 </CardDescription>
               </div>
             </div>
 
-            <Badge variant="outline" className="bg-background text-blue-700 dark:text-blue-400 font-mono text-xs">
-              Total Inspections: {visits.length}
+            <Badge variant="outline" className="bg-background text-blue-700 dark:text-blue-400 font-mono text-xs self-start sm:self-auto">
+              Total Inspections: {totalInspectionsCount}
             </Badge>
           </div>
         </CardHeader>
       </Card>
 
-      {/* Visits List */}
-      {visits.length === 0 ? (
+      {/* When no visits or officer activities exist */}
+      {totalInspectionsCount === 0 ? (
         <Card className="border-dashed border-2 bg-muted/20">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-blue-600">
@@ -70,13 +91,91 @@ export function FarmerVisitsTimeline({ farmer, visits, isLoading }: FarmerVisits
             <div className="space-y-1">
               <h3 className="text-base font-semibold">No Officer Visits Logged Yet</h3>
               <p className="text-sm text-muted-foreground max-w-md">
-                Your assigned Agriculture Field Officer will conduct routine crop scouting and log recommendations here.
+                Your assigned Agriculture Field Officer will conduct routine crop scouting on your farm and log verified observations and recommendations here.
               </p>
             </div>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
+          {/* 1. Activities logged by Field Officer */}
+          {officerActivities.map((act) => (
+            <Card key={act.id} className="border border-blue-500/30 hover:border-blue-500/60 transition-all shadow-xs overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border/50 bg-blue-50/30 dark:bg-blue-950/15">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1 rounded-md bg-blue-600 text-white">
+                      <FlaskConical className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="font-bold text-sm text-foreground">
+                      {act.activity_type.replace(/_/g, ' ')}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30">
+                      Officer Field Log
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {act.executed_date || act.scheduled_date}
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="pt-4 space-y-4 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Logged By</span>
+                    <span className="font-semibold text-foreground flex items-center gap-1">
+                      <UserCheck className="h-3.5 w-3.5 text-blue-600" />
+                      {act.logged_by_name || 'Field Officer'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Dosage / Input Used</span>
+                    <span className="font-semibold text-foreground font-mono">{act.dosage_or_volume || 'Standard PAU Package'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[11px]">Verification Status</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Confirmed On-Site
+                    </span>
+                  </div>
+                </div>
+
+                {/* Photo Evidence if uploaded by officer */}
+                {act.photo_url && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-muted-foreground font-medium text-[11px] flex items-center gap-1">
+                      <Camera className="h-3.5 w-3.5 text-blue-600" />
+                      Field Inspection Photo:
+                    </span>
+                    <div className="w-48 h-32 rounded-lg overflow-hidden border border-border shadow-xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={act.photo_url} alt="Field inspection" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes & Recommendations */}
+                {act.notes && (
+                  <div className="p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-300 text-xs">
+                      <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+                      Officer Remarks & Recommendations:
+                    </div>
+                    <p className="text-xs text-blue-950 dark:text-blue-200 leading-relaxed">
+                      {act.notes}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* 2. Official Visits Records */}
           {visits.map((v) => (
             <Card key={v.id} className="border border-border/80 hover:border-blue-500/40 transition-all shadow-xs">
               <CardHeader className="pb-3 border-b border-border/50 bg-muted/20">
@@ -91,7 +190,7 @@ export function FarmerVisitsTimeline({ farmer, visits, isLoading }: FarmerVisits
                     <Badge className="bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30 text-[10px]">
                       {v.verification_status}
                     </Badge>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
                       <Calendar className="h-3.5 w-3.5" />
                       {v.visit_date}
                     </span>
@@ -114,6 +213,19 @@ export function FarmerVisitsTimeline({ farmer, visits, isLoading }: FarmerVisits
                     <span className="font-semibold text-foreground">{v.pest_observed || 'No Significant Pest'}</span>
                   </div>
                 </div>
+
+                {v.photo_url && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-muted-foreground font-medium text-[11px] flex items-center gap-1">
+                      <Camera className="h-3.5 w-3.5 text-blue-600" />
+                      Inspection Photo:
+                    </span>
+                    <div className="w-48 h-32 rounded-lg overflow-hidden border border-border shadow-xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={v.photo_url} alt="Inspection Photo" className="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                )}
 
                 {v.action_recommended && (
                   <div className="p-3 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 space-y-1">

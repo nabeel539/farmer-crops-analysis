@@ -35,41 +35,10 @@ export default function GISFieldMapPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <PageHeader
         title="GIS Agricultural Satellite Map"
         description="Interactive geographic satellite field map with parcel polygon boundaries, NDVI vegetation index layers, and crop moisture stress zones."
-      >
-        <div className="flex items-center gap-2">
-          {/* Layer Selector */}
-          <div className="flex bg-muted p-1 rounded-xl text-xs">
-            <Button
-              variant={activeLayer === 'HEALTH' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 text-xs font-semibold px-2.5 cursor-pointer"
-              onClick={() => setActiveLayer('HEALTH')}
-            >
-              Health Status
-            </Button>
-            <Button
-              variant={activeLayer === 'NDVI' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 text-xs font-semibold px-2.5 cursor-pointer"
-              onClick={() => setActiveLayer('NDVI')}
-            >
-              NDVI Canopy
-            </Button>
-            <Button
-              variant={activeLayer === 'STAGE' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 text-xs font-semibold px-2.5 cursor-pointer"
-              onClick={() => setActiveLayer('STAGE')}
-            >
-              Phenology Stage
-            </Button>
-          </div>
-        </div>
-      </PageHeader>
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Real Interactive Leaflet Geographic Satellite Map */}

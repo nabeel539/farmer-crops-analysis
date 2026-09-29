@@ -43,18 +43,21 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)) -> User:
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, db: Session = Depends(get_db)) -> dict:
     """Authenticate and receive a JWT access token."""
+    from sqlalchemy import func
     # Allow login with email or mobile/user_id
     ident = data.email.strip()
+    ident_lower = ident.lower()
     user = (
         db.query(User)
         .filter(
-            (User.email == ident)
+            (func.lower(User.email) == ident_lower)
+            | (func.lower(User.mobile) == ident_lower)
             | (User.mobile == ident)
-            | (User.email == f"{ident}@krishi.local")
+            | (func.lower(User.email) == f"{ident_lower}@krishi.local")
         )
         .first()
     )
-    if not user or not verify_password(data.password, user.password_hash):
+    if not user or not verify_password(data.password.strip(), user.password_hash):
         raise UnauthorizedException("Invalid user ID / email or password")
 
     if not user.is_active:

@@ -27,7 +27,8 @@ class Farmer(Base):
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    mobile_number: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    mobile_number: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     village: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     block: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -52,7 +53,7 @@ class Farmer(Base):
     )
 
     # Relationships
-    fields = relationship("Field", back_populates="farmer", lazy="selectin")
+    fields = relationship("Field", back_populates="farmer", lazy="selectin", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Farmer {self.name} village={self.village}>"

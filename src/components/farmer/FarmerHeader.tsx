@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useAppSelector } from '@/store/hooks';
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { setActiveRole } from '@/store/slices/uiSlice';
 import { Button } from '@/components/ui/button';
 import { RoleSwitcherBar } from '@/components/shared/RoleSwitcherBar';
 import {
@@ -48,6 +49,7 @@ export function FarmerHeader({
   farmerCode,
   village
 }: FarmerHeaderProps) {
+  const dispatch = useAppDispatch();
   const alerts = useAppSelector((state) => state.alerts.alerts);
   const unreadAlerts = alerts.filter((a) => !a.resolved);
 
@@ -163,19 +165,6 @@ export function FarmerHeader({
                   <span className="text-[10px] opacity-80 font-mono">Forecast</span>
                 </button>
               </div>
-
-              {/* Other Portals Switch */}
-              <div className="pt-2 border-t border-border/60 space-y-2">
-                <span className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider px-2 block">Switch Portals</span>
-                <Link href="/admin" className="flex items-center justify-between px-3 py-2 rounded-md bg-primary/10 text-primary font-semibold">
-                  <span>Admin Console</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-                <Link href="/field-officer" className="flex items-center justify-between px-3 py-2 rounded-md bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold">
-                  <span>Field Officer App</span>
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              </div>
             </div>
           </SheetContent>
         </Sheet>
@@ -201,7 +190,7 @@ export function FarmerHeader({
         </div>
       </div>
 
-      {/* Right side: Direct Call + Role Switcher + Alerts + Avatar */}
+      {/* Right side: Direct Call + Alerts + User Avatar Dropdown */}
       <div className="flex items-center gap-2 sm:gap-2.5">
         {/* Direct Call to Field Officer Button */}
         <Button
@@ -213,9 +202,6 @@ export function FarmerHeader({
           <PhoneCall className="h-3.5 w-3.5 text-emerald-600" />
           <span className="text-[11px] font-semibold">Call Field Officer</span>
         </Button>
-
-        {/* Role Switcher */}
-        <RoleSwitcherBar />
 
         {/* Agri Alerts Dropdown */}
         <DropdownMenu>
@@ -262,10 +248,8 @@ export function FarmerHeader({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Farmer initials avatar */}
-        <div className="w-8 h-8 rounded-full bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-600/40 shrink-0">
-          BA
-        </div>
+        {/* User initials avatar — click to open profile & logout */}
+        <RoleSwitcherBar />
       </div>
     </header>
   );

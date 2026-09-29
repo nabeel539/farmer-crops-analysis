@@ -143,6 +143,12 @@ export interface CropCycle {
   riskAlertLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'NONE';
   lastInspectionDate?: string;
   notes?: string;
+  // Configurable Farmer Advisory & Protocols
+  irrigationStrategy?: string;
+  nutritionPlan?: string;
+  seedTreatment?: string;
+  officerAdvisory?: string;
+  notifyFarmerViaSms?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

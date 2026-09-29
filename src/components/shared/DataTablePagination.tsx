@@ -7,9 +7,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   ChevronsLeft, 
-  ChevronsRight, 
-  LayoutGrid, 
-  Table as TableIcon 
+  ChevronsRight 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -17,7 +15,7 @@ export type ViewMode = 'table' | 'cards';
 
 interface DataTablePaginationProps {
   currentPage: number;
-  totalPages: number;
+  totalPages?: number;
   pageSize: number;
   totalItems: number;
   onPageChange: (page: number) => void;
@@ -35,9 +33,6 @@ export default function DataTablePagination({
   totalItems,
   onPageChange,
   onPageSizeChange,
-  viewMode = 'table',
-  onViewModeChange,
-  showViewToggle = true,
   className,
 }: DataTablePaginationProps) {
   const startItem = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
@@ -50,39 +45,8 @@ export default function DataTablePagination({
         className
       )}
     >
-      {/* Left side: View Mode Toggle & Items Count */}
+      {/* Left side: Items Count */}
       <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-        {showViewToggle && onViewModeChange && (
-          <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border/60">
-            <Button
-              type="button"
-              variant={viewMode === 'table' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => onViewModeChange('table')}
-              className={cn(
-                'h-7 px-2.5 text-xs gap-1.5 font-medium rounded-md transition-all',
-                viewMode === 'table' ? 'shadow-xs' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <TableIcon className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Table View</span>
-            </Button>
-            <Button
-              type="button"
-              variant={viewMode === 'cards' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => onViewModeChange('cards')}
-              className={cn(
-                'h-7 px-2.5 text-xs gap-1.5 font-medium rounded-md transition-all',
-                viewMode === 'cards' ? 'shadow-xs' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Card Grid</span>
-            </Button>
-          </div>
-        )}
-
         <div className="text-xs">
           Showing <span className="font-semibold text-foreground">{startItem}</span> to{' '}
           <span className="font-semibold text-foreground">{endItem}</span> of{' '}

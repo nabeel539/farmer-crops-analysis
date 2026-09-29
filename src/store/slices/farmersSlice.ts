@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Farmer } from '@/types';
-import { MOCK_FARMERS } from '@/data/mockData';
 
 interface FarmersState {
   farmers: Farmer[];
@@ -13,7 +12,7 @@ interface FarmersState {
 }
 
 const initialState: FarmersState = {
-  farmers: MOCK_FARMERS,
+  farmers: [],
   selectedFarmerId: null,
   searchQuery: '',
   statusFilter: 'ALL',

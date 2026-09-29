@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { SeedDistributionRecord, SeedBag } from '@/types';
-import { MOCK_SEED_DISTRIBUTIONS, MOCK_SEED_BAGS } from '@/data/mockData';
 
 interface SeedDistributionState {
   distributions: SeedDistributionRecord[];
@@ -12,8 +11,8 @@ interface SeedDistributionState {
 }
 
 const initialState: SeedDistributionState = {
-  distributions: MOCK_SEED_DISTRIBUTIONS,
-  seedBags: MOCK_SEED_BAGS,
+  distributions: [],
+  seedBags: [],
   selectedDistributionId: null,
   searchQuery: '',
   varietyFilter: 'ALL',
@@ -24,6 +23,12 @@ export const seedDistributionsSlice = createSlice({
   name: 'seedDistributions',
   initialState,
   reducers: {
+    setDistributions: (state, action: PayloadAction<SeedDistributionRecord[]>) => {
+      state.distributions = action.payload;
+    },
+    setSeedBags: (state, action: PayloadAction<SeedBag[]>) => {
+      state.seedBags = action.payload;
+    },
     addDistribution: (state, action: PayloadAction<SeedDistributionRecord>) => {
       state.distributions.unshift(action.payload);
     },
@@ -52,6 +57,8 @@ export const seedDistributionsSlice = createSlice({
 });
 
 export const {
+  setDistributions,
+  setSeedBags,
   addDistribution,
   updateDistribution,
   deleteDistribution,
